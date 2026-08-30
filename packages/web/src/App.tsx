@@ -13,13 +13,26 @@ import { SetupScreen } from './screens/SetupScreen';
 import { parseSessionFile } from './export/sessionFile';
 import { clearAllData, isOptedIn, loadSession, saveSession, setOptedIn } from './state/persistence';
 import { runCalculation } from './state/runCalculation';
-import { emptySession, type SessionState, type Step } from './state/session';
+import {
+  activeSession,
+  addTaxpayer,
+  copyFxRatesFrom,
+  emptyWorkspace,
+  patchActiveSession,
+  removeTaxpayer,
+  switchTaxpayer,
+  type SessionState,
+  type Step,
+  type Workspace,
+} from './state/session';
+import { TaxpayerBar } from './components/TaxpayerBar';
 import { ColumnMappingWizard } from './wizard/ColumnMappingWizard';
 
 export function App() {
   const { t, i18n } = useTranslation();
   const [step, setStep] = useState<Step>('landing');
-  const [session, setSession] = useState<SessionState>(emptySession);
+  const [workspace, setWorkspace] = useState<Workspace>(emptyWorkspace);
+  const session = activeSession(workspace);
   const [pendingFile, setPendingFile] = useState<ParsedFile | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Spec §12: the disclaimer must be seen, not merely present. The gate is a deliberate
@@ -32,7 +45,7 @@ export function App() {
   useEffect(() => {
     if (!isOptedIn()) return;
     void loadSession().then((saved) => {
-      if (saved) setSession((prev) => ({ ...prev, ...saved }));
+      if (saved) setWorkspace((prev) => patchActiveSession(prev, saved));
     });
   }, []);
 
@@ -72,7 +85,7 @@ export function App() {
     const outcome = await clearAllData();
     // In-memory state is reset either way — the user asked for their data gone, and
     // whatever we still hold in this tab goes regardless of what the browser allowed.
-    setSession(emptySession());
+    setWorkspace(emptyWorkspace());
     setPersistEnabled(false);
     setDisclaimerAccepted(false);
     setStep('landing');
@@ -83,7 +96,9 @@ export function App() {
     );
   }
 
-  const patch = (p: Partial<SessionState>) => setSession((prev) => ({ ...prev, ...p }));
+  // Every mutation goes through the active taxpayer only — there is no code path that
+  // writes one person's data into another's session (spec §6 hard isolation).
+  const patch = (p: Partial<SessionState>) => setWorkspace((prev) => patchActiveSession(prev, p));
 
   const result = useMemo<FifCalculationResult | { error: string } | null>(() => {
     if (step !== 'results') return null;
@@ -221,6 +236,30 @@ export function App() {
   return (
     <DrillDownProvider>
       {appHeader}
+      <TaxpayerBar
+        workspace={workspace}
+        onSwitch={(id) => {
+          // Drop any half-finished upload: a file picked for one person must never be
+          // completed into another's account set.
+          setPendingFile(null);
+          setStep('setup');
+          setWorkspace((prev) => switchTaxpayer(prev, id));
+        }}
+        onAdd={() => {
+          setPendingFile(null);
+          setStep('setup');
+          setWorkspace((prev) => addTaxpayer(prev));
+        }}
+        onRemove={(id) => {
+          setPendingFile(null);
+          setStep('setup');
+          setWorkspace((prev) => removeTaxpayer(prev, id));
+        }}
+        onCopyFxRates={(sourceId) => {
+          setWorkspace((prev) => copyFxRatesFrom(prev, sourceId));
+          setNotice('FX rates copied. Holdings and prices were not — those stay separate per person.');
+        }}
+      />
       <main className="mx-auto max-w-5xl px-6 py-10">
         {step === 'setup' && (
           <>

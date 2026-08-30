@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased — multiple taxpayers with hard isolation (§6)
+
+A couple filing separately can now work in one browser session. Each taxpayer owns a
+complete, separate session — their own accounts, opening holdings, prices, FX rates and
+FX policy — and the de minimis test and FDR/CV election run per person.
+
+The isolation is **structural, not a convention**. Rather than splitting "shared
+settings" out from per-person data, the whole session lives inside the taxpayer, so
+there is no shape in which one person's holdings can reach another's calculation. Every
+mutation goes through `patchActiveSession`, which touches the active taxpayer and
+nothing else. Switching or adding a taxpayer also drops any half-finished upload, so a
+file picked for one person cannot be completed into another's account set.
+
+This matters because the threshold is per person: two people at NZD 48,333.33 each are
+both comfortably under it, but pooled they are at NZD 96,666.67 and both would be pulled
+into the FIF regime. That exact scenario is the lead test, and it was also verified in
+the browser — each person shows a peak of 48,333.33 with no trace of the other's
+holdings.
+
+The one thing that can be copied between taxpayers is the FX rate table, via an explicit
+action. Rates are objective market data, so retyping them for a second person is pure
+tedium; holdings, accounts and prices are never copied, and a test asserts it.
+
+231 tests (132 engine, 99 web).
+
 ## Unreleased — spec gaps closed (FX variance panel, session import, local persistence)
 
 Three requirements that were specified but never built, none of which needed broker
