@@ -128,5 +128,6 @@ export function runCalculation(session: SessionState): FifCalculationResult {
     ird: new TableIrdRateProvider(toIrdRateTable(session)),
     accountBaseCurrencies: session.accountBaseCurrencies,
     confirmedTransferTxnIds: session.confirmedTransferTxnIds,
+    scopeOverrides: session.scopeOverrides,
   });
 }

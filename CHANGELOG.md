@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased — scope overrides, workspace persistence, and a currency bug
+
+**Per-holding scope overrides (§5.1 step 2, §5.5).** The engine has always supported
+them; there was no way to reach it. A "Holding treatment" table on the Review screen now
+shows each instrument alongside the automatic screening decision, and lets the user
+force it in or out of FIF scope, or mark FDR unavailable for it. Both default to Auto,
+so nothing changes unless the user asserts something the app cannot know — principally
+the Australian listed share exemption, which depends on facts about the company that are
+not in any broker export and whose bundled list is empty.
+
+**Workspace persistence.** Fixes a gap introduced with multi-taxpayer support the same
+day: only the active taxpayer was saved, so a second person's hand-entered holdings
+vanished on reload. The stored record is now versioned, and a v1 single-session record
+is migrated into a one-taxpayer workspace rather than discarded.
+
+**Fixed: closing prices were stored in the wrong currency.** A newly created
+closing-price row hardcoded `currency: 'USD'`. The screen *displayed* the correct
+currency, because the input falls back to the requirement's value when no entry exists
+yet — so an ASX holding showed AUD while the session stored USD, the app then asked for
+USD rates that had nothing to do with the holding, and the closing price would have been
+converted at the USD rate. Silent, and wrong in exactly the way that produces a
+plausible-looking but incorrect tax figure. Found by noticing the Prices screen asking
+for USD rates on an AUD-only portfolio. Regression test added.
+
+243 tests (132 engine, 111 web).
+
 ## Unreleased — multiple taxpayers with hard isolation (§6)
 
 A couple filing separately can now work in one browser session. Each taxpayer owns a

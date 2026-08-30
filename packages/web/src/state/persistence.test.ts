@@ -1,6 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clearAllData, isOptedIn, saveSession, setOptedIn, toPersisted } from './persistence';
-import { emptySession, type SessionState } from './session';
+import {
+  clearAllData,
+  fromPersistedWorkspace,
+  isOptedIn,
+  migrate,
+  saveWorkspace,
+  setOptedIn,
+  toPersisted,
+  toPersistedWorkspace,
+  type PersistedWorkspace,
+} from './persistence';
+import { addTaxpayer, emptySession, emptyWorkspace, patchActiveSession, type SessionState } from './session';
 
 function sessionWithData(): SessionState {
   return {
@@ -32,10 +42,57 @@ describe('persistence consent', () => {
     expect(isOptedIn()).toBe(false);
   });
 
-  it('saveSession is a no-op while opted out', async () => {
-    // jsdom has no IndexedDB by default; if saveSession tried to write while opted out
-    // this would reject rather than resolve silently.
-    await expect(saveSession(sessionWithData())).resolves.toBeUndefined();
+  it('saveWorkspace is a no-op while opted out', async () => {
+    // jsdom has no IndexedDB by default; if it tried to write while opted out this
+    // would reject rather than resolve silently.
+    await expect(saveWorkspace(emptyWorkspace())).resolves.toBeUndefined();
+  });
+});
+
+describe('workspace persistence', () => {
+  it('round-trips every taxpayer, not just the active one', () => {
+    let ws = patchActiveSession(emptyWorkspace(), { taxpayerName: 'Person A' });
+    ws = addTaxpayer(ws, 'Person B');
+    ws = patchActiveSession(ws, { fxRates: { 'USD|2025-04-01': '0.6000' } });
+
+    const restored = fromPersistedWorkspace(toPersistedWorkspace(ws));
+
+    expect(restored.taxpayers).toHaveLength(2);
+    expect(restored.taxpayers.map((t) => t.session.taxpayerName)).toEqual(['Person A', 'Person B']);
+    expect(restored.taxpayers[1]?.session.fxRates['USD|2025-04-01']).toBe('0.6000');
+    expect(restored.activeTaxpayerId).toBe(ws.activeTaxpayerId);
+  });
+
+  it('migrates a v1 single-session record into a one-taxpayer workspace', () => {
+    // Written before multi-taxpayer support existed. Someone who opted in then should
+    // not lose what they typed because the app gained a feature.
+    const v1 = toPersisted({ ...sessionWithData(), taxpayerName: 'Legacy' });
+    const migrated = migrate(v1);
+
+    expect(migrated?.version).toBe(2);
+    expect(migrated?.taxpayers).toHaveLength(1);
+    expect(migrated?.taxpayers[0]?.session.taxpayerName).toBe('Legacy');
+    expect(migrated?.activeTaxpayerId).toBe(migrated?.taxpayers[0]?.id);
+  });
+
+  it('passes a v2 record through unchanged', () => {
+    const v2 = toPersistedWorkspace(emptyWorkspace());
+    expect(migrate(v2)).toEqual(v2);
+  });
+
+  it('returns null for junk rather than throwing', () => {
+    expect(migrate(null)).toBeNull();
+    expect(migrate('nonsense')).toBeNull();
+    expect(migrate({ unrelated: true })).toBeNull();
+  });
+
+  it('recovers a corrupt active id by falling back to a real taxpayer', () => {
+    const persisted: PersistedWorkspace = {
+      ...toPersistedWorkspace(emptyWorkspace()),
+      activeTaxpayerId: 'missing',
+    };
+    const restored = fromPersistedWorkspace(persisted);
+    expect(restored.taxpayers.some((t) => t.id === restored.activeTaxpayerId)).toBe(true);
   });
 });
 

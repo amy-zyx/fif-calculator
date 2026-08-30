@@ -11,7 +11,7 @@ import { ResultsScreen } from './screens/ResultsScreen';
 import { ReviewScreen } from './screens/ReviewScreen';
 import { SetupScreen } from './screens/SetupScreen';
 import { parseSessionFile } from './export/sessionFile';
-import { clearAllData, isOptedIn, loadSession, saveSession, setOptedIn } from './state/persistence';
+import { clearAllData, isOptedIn, loadWorkspace, saveWorkspace, setOptedIn } from './state/persistence';
 import { runCalculation } from './state/runCalculation';
 import {
   activeSession,
@@ -44,16 +44,18 @@ export function App() {
   // Restore a previously saved session, but only if the user opted in.
   useEffect(() => {
     if (!isOptedIn()) return;
-    void loadSession().then((saved) => {
-      if (saved) setWorkspace((prev) => patchActiveSession(prev, saved));
+    void loadWorkspace().then((saved) => {
+      // Restore every taxpayer, not just the active one — losing a second person's
+      // hand-entered holdings on reload would be silent data loss.
+      if (saved && saved.taxpayers.length > 0) setWorkspace(saved);
     });
   }, []);
 
-  // Persist on change. A no-op while opted out — saveSession gates on consent itself,
-  // so there is no path where transaction data is written without being asked for.
+  // Persist on change. A no-op while opted out — saveWorkspace gates on consent itself,
+  // so there is no path where data is written without being asked for.
   useEffect(() => {
-    void saveSession(session);
-  }, [session, persistEnabled]);
+    void saveWorkspace(workspace);
+  }, [workspace, persistEnabled]);
 
   function handleImportSession(fileList: FileList | null) {
     const file = fileList?.[0];

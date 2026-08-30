@@ -1,5 +1,6 @@
 import { dedupeTxns, findTransferMatches } from '@fif-calculator/engine';
 import { useMemo } from 'react';
+import { ScopeOverrides } from '../components/ScopeOverrides';
 import { allTxns, type SessionState } from '../state/session';
 
 /**
@@ -133,6 +134,8 @@ export function ReviewScreen({
           </p>
         </section>
       )}
+
+      <ScopeOverrides session={session} onChange={onChange} />
 
       <section className="rounded border border-gray-200 p-4">
         <h2 className="mb-2 font-semibold">Transactions</h2>

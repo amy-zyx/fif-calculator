@@ -1,4 +1,4 @@
-import type { CanonicalTxn, CostBasisMethod, FxPolicy } from '@fif-calculator/engine';
+import type { CanonicalTxn, CostBasisMethod, FxPolicy, ScopeOverride } from '@fif-calculator/engine';
 import type { ParseWarning } from '../adapters/types';
 
 export type Step = 'landing' | 'setup' | 'upload' | 'review' | 'prices' | 'results';
@@ -56,6 +56,13 @@ export interface SessionState {
   confirmedTransferTxnIds: string[];
   /** sourceAccountId -> statement base currency, when it is not NZD (spec §5.7 trap 1). */
   accountBaseCurrencies: Record<string, string>;
+  /**
+   * Per-holding manual scope decisions, keyed by instrument key (spec §5.1 step 2,
+   * §5.5). Two things the engine cannot determine on its own live here: whether an
+   * Australian-listed holding qualifies for the exemption, and whether FDR is
+   * unavailable for the interest.
+   */
+  scopeOverrides: Record<string, ScopeOverride>;
 }
 
 export function emptySession(): SessionState {
@@ -70,6 +77,7 @@ export function emptySession(): SessionState {
     fxRates: {},
     confirmedTransferTxnIds: [],
     accountBaseCurrencies: {},
+    scopeOverrides: {},
   };
 }
 

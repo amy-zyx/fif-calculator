@@ -40,13 +40,23 @@ export function PricesScreen({
   const stillMissingRates = missingFxRates(session);
   const ready = stillMissingPrices.length === 0 && stillMissingRates.length === 0;
 
-  function setClosingPrice(ticker: string, exchange: string | null, patch: Partial<ManualClosingPrice>) {
+  /**
+   * `defaultCurrency` comes from the requirement — the currency the instrument actually
+   * traded in. It must not be assumed: a new row previously defaulted to USD, so an ASX
+   * holding displayed AUD (the requirement's value, shown as a fallback) while the
+   * session stored USD, and the closing price was then converted at the USD rate.
+   * Silent, and wrong in exactly the way that produces a plausible bad tax figure.
+   */
+  function setClosingPrice(
+    ticker: string,
+    exchange: string | null,
+    defaultCurrency: string,
+    patch: Partial<ManualClosingPrice>,
+  ) {
     const existing = session.closingPrices.find((p) => p.ticker.toUpperCase() === ticker.toUpperCase());
     const next = existing
-      ? session.closingPrices.map((p) =>
-          p === existing ? { ...p, ...patch } : p,
-        )
-      : [...session.closingPrices, { ticker, exchange, pricePerUnit: '', currency: 'USD', ...patch }];
+      ? session.closingPrices.map((p) => (p === existing ? { ...p, ...patch } : p))
+      : [...session.closingPrices, { ticker, exchange, pricePerUnit: '', currency: defaultCurrency, ...patch }];
     onChange({ closingPrices: next });
   }
 
@@ -215,7 +225,9 @@ export function PricesScreen({
                     <input
                       aria-label={`Closing price for ${req.ticker}`}
                       value={entry?.pricePerUnit ?? ''}
-                      onChange={(e) => setClosingPrice(req.ticker, req.exchange, { pricePerUnit: e.target.value })}
+                      onChange={(e) =>
+                        setClosingPrice(req.ticker, req.exchange, req.currency, { pricePerUnit: e.target.value })
+                      }
                       className="w-28 rounded border border-gray-300 px-2 py-1 font-mono"
                     />
                   </td>
@@ -223,7 +235,11 @@ export function PricesScreen({
                     <input
                       aria-label={`Currency for ${req.ticker}`}
                       value={entry?.currency ?? req.currency}
-                      onChange={(e) => setClosingPrice(req.ticker, req.exchange, { currency: e.target.value.toUpperCase() })}
+                      onChange={(e) =>
+                        setClosingPrice(req.ticker, req.exchange, req.currency, {
+                          currency: e.target.value.toUpperCase(),
+                        })
+                      }
                       className="w-20 rounded border border-gray-300 px-2 py-1 font-mono uppercase"
                     />
                   </td>

@@ -1,5 +1,5 @@
 import { openDB, type IDBPDatabase } from 'idb';
-import type { SessionState } from './session';
+import { emptySession, newTaxpayerId, type SessionState, type Workspace } from './session';
 
 const DB_NAME = 'fif-calculator';
 const STORE = 'session';
@@ -80,6 +80,7 @@ export interface PersistedSession {
   fxRates: SessionState['fxRates'];
   confirmedTransferTxnIds: string[];
   accountBaseCurrencies: Record<string, string>;
+  scopeOverrides: SessionState['scopeOverrides'];
 }
 
 export function toPersisted(session: SessionState): PersistedSession {
@@ -93,24 +94,79 @@ export function toPersisted(session: SessionState): PersistedSession {
     fxRates: session.fxRates,
     confirmedTransferTxnIds: session.confirmedTransferTxnIds,
     accountBaseCurrencies: session.accountBaseCurrencies,
+    scopeOverrides: session.scopeOverrides,
   };
 }
 
-export async function saveSession(session: SessionState): Promise<void> {
+/**
+ * The whole workspace, so a second taxpayer is not silently lost on reload.
+ * Versioned because the v1 shape stored a single session with no taxpayers at all.
+ */
+export interface PersistedWorkspace {
+  version: 2;
+  taxpayers: Array<{ id: string; session: PersistedSession }>;
+  activeTaxpayerId: string;
+}
+
+export function toPersistedWorkspace(workspace: Workspace): PersistedWorkspace {
+  return {
+    version: 2,
+    taxpayers: workspace.taxpayers.map((t) => ({ id: t.id, session: toPersisted(t.session) })),
+    activeTaxpayerId: workspace.activeTaxpayerId,
+  };
+}
+
+/** Rebuilds a full Workspace, filling in the runtime-only fields a save omits. */
+export function fromPersistedWorkspace(persisted: PersistedWorkspace): Workspace {
+  const taxpayers = persisted.taxpayers.map((t) => ({
+    id: t.id,
+    // Accounts are NOT persisted — parsed transactions carry Decimals, which do not
+    // survive structured cloning. The user re-uploads their files; everything they
+    // typed by hand is what comes back.
+    session: { ...emptySession(), ...t.session },
+  }));
+  if (taxpayers.length === 0) return { taxpayers: [], activeTaxpayerId: '' };
+  const active = taxpayers.some((t) => t.id === persisted.activeTaxpayerId)
+    ? persisted.activeTaxpayerId
+    : (taxpayers[0] as { id: string }).id;
+  return { taxpayers, activeTaxpayerId: active };
+}
+
+/**
+ * Reads either shape. A v1 record (a bare session, written before multi-taxpayer
+ * support) is migrated into a one-taxpayer workspace rather than discarded — someone
+ * who had opted in should not lose what they typed because the app gained a feature.
+ */
+export function migrate(raw: unknown): PersistedWorkspace | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const record = raw as Record<string, unknown>;
+
+  if (record['version'] === 2 && Array.isArray(record['taxpayers'])) {
+    return raw as PersistedWorkspace;
+  }
+  if (typeof record['incomeYear'] === 'number') {
+    const id = newTaxpayerId();
+    return { version: 2, taxpayers: [{ id, session: raw as PersistedSession }], activeTaxpayerId: id };
+  }
+  return null;
+}
+
+export async function saveWorkspace(workspace: Workspace): Promise<void> {
   if (!isOptedIn()) return;
   try {
     const database = await db();
-    await database.put(STORE, toPersisted(session), KEY);
+    await database.put(STORE, toPersistedWorkspace(workspace), KEY);
   } catch {
     // Persistence is a convenience; a failure must never interrupt the calculation.
   }
 }
 
-export async function loadSession(): Promise<PersistedSession | null> {
+export async function loadWorkspace(): Promise<Workspace | null> {
   if (!isOptedIn()) return null;
   try {
     const database = await db();
-    return (await database.get(STORE, KEY)) ?? null;
+    const migrated = migrate(await database.get(STORE, KEY));
+    return migrated ? fromPersistedWorkspace(migrated) : null;
   } catch {
     return null;
   }
