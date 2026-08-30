@@ -1,5 +1,41 @@
 # Changelog
 
+## Unreleased — M6
+
+### M6 — Providers, bundled FX structure, i18n, disclaimer gate, deploy
+`PriceProvider` with three implementations, as the spec requires: `ManualEntryProvider`
+(the baseline — always available, works with no key and no network),
+`CsvImportProvider` (prices from a CSV the user already has, which scales past typing),
+and `AlphaVantageProvider` (CORS-permitting, user-supplied key stored in localStorage,
+never bundled). `src/providers/` is the only directory allowed to call `fetch`, enforced
+by a lint exemption scoped to that path, a test asserting no module outside it calls
+`fetch`, and a test asserting the outbound request carries only a symbol, a function
+name and the key — never a quantity, cost, account or name.
+
+**The bundled IRD FX datasets ship EMPTY, deliberately.** The loader, zod schema,
+validation (rates must be positive decimal *strings*, and none may fall outside the
+income year it is filed under) and a documented refresh procedure are all in place, but
+no rate has been transcribed from IRD. Fabricating plausible-looking exchange rates
+would produce authoritative-looking tax figures that are wrong, which is worse than
+producing none. Manual entry remains the working path and is not a degraded mode.
+
+i18n via react-i18next, English and 简体中文, with a test asserting the two bundles have
+identical key sets. Tax terms of art keep their English name in the Chinese bundle with
+the gloss alongside — `Fair Dividend Rate (FDR) 公平股息率法` — because the user has to
+match those terms against IR461 and discuss them with an accountant.
+
+The disclaimer is now a **gate**: "Get started" stays disabled until it is
+acknowledged, and it states plainly that nothing here has been checked against a real
+broker export or reviewed by a tax professional, that the Australian exemption list is
+empty, and that no IRD rates are bundled.
+
+Deploy config for Netlify plus a `public/_headers` file, both serving the real CSP as an
+HTTP header — the `<meta>` CSP in index.html cannot set `frame-ancestors`.
+
+210 tests (132 engine, 78 web). Production build succeeds. Verified in a browser: the
+gate blocks until accepted, the language switch works and persists across reload, no
+console errors.
+
 ## Unreleased — M4
 
 ### M4 — Working paper, PDF summary, and carry-forward

@@ -1,5 +1,7 @@
 import type { FifCalculationResult } from '@fif-calculator/engine';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { SUPPORTED_LANGUAGES, setLanguage, type LanguageCode } from './i18n';
 import { detectBestAdapter, isConfidentMatch } from './adapters/registry';
 import type { ParsedFile } from './adapters/types';
 import { DrillDownPanel, DrillDownProvider } from './components/DrillDown';
@@ -12,16 +14,15 @@ import { runCalculation } from './state/runCalculation';
 import { emptySession, type SessionState, type Step } from './state/session';
 import { ColumnMappingWizard } from './wizard/ColumnMappingWizard';
 
-const DISCLAIMER =
-  'This tool provides an estimate only and is not tax advice. FIF calculations depend on facts and ' +
-  'elections specific to you. Verify all figures against IRD guide IR461 and confirm with a chartered ' +
-  'accountant before filing. The authors accept no liability.';
-
 export function App() {
+  const { t, i18n } = useTranslation();
   const [step, setStep] = useState<Step>('landing');
   const [session, setSession] = useState<SessionState>(emptySession);
   const [pendingFile, setPendingFile] = useState<ParsedFile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Spec §12: the disclaimer must be seen, not merely present. The gate is a deliberate
+  // stop rather than a footnote, because every figure this app produces is an estimate.
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
   const patch = (p: Partial<SessionState>) => setSession((prev) => ({ ...prev, ...p }));
 
@@ -65,23 +66,53 @@ export function App() {
 
   if (step === 'landing') {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-16">
-        <h1 className="text-2xl font-bold">NZ FIF Tax Calculator</h1>
-        <p className="mt-4 text-gray-700">
-          Upload your broker exports and get a consolidated Foreign Investment Fund (FIF) income figure for the
-          NZ tax year, calculated under both FDR and Comparative Value, with a full audit trail.
-        </p>
+      <main className="mx-auto max-w-2xl px-6 py-16" data-testid="landing">
+        <div className="mb-6 flex justify-end">
+          <label className="text-sm text-gray-600">
+            {t('app.language')}{' '}
+            <select
+              aria-label={t('app.language')}
+              value={i18n.language}
+              onChange={(e) => setLanguage(e.target.value as LanguageCode)}
+              className="rounded border border-gray-300 px-2 py-1"
+            >
+              {SUPPORTED_LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <h1 className="text-2xl font-bold">{t('app.title')}</h1>
+        <p className="mt-4 text-gray-700">{t('app.tagline')}</p>
         <p className="mt-4 rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
-          <strong>No transaction data ever leaves your browser.</strong> This is a static, client-side-only app —
-          there is no backend and no database.
+          {t('app.privacy')}
         </p>
-        <p className="mt-4 text-xs text-gray-500">{DISCLAIMER}</p>
+
+        <section className="mt-6 rounded border border-amber-300 bg-amber-50 p-4">
+          <h2 className="font-semibold text-amber-900">{t('disclaimer.heading')}</h2>
+          <p className="mt-2 text-sm text-amber-900">{t('disclaimer.text')}</p>
+          <p className="mt-2 text-sm text-amber-900">{t('disclaimer.notVerified')}</p>
+          <label className="mt-3 flex items-start gap-2 text-sm text-amber-900">
+            <input
+              type="checkbox"
+              checked={disclaimerAccepted}
+              onChange={(e) => setDisclaimerAccepted(e.target.checked)}
+              className="mt-1"
+            />
+            <span>{t('disclaimer.accept')}</span>
+          </label>
+        </section>
+
         <button
           type="button"
+          disabled={!disclaimerAccepted}
           onClick={() => setStep('setup')}
-          className="mt-6 rounded bg-blue-600 px-4 py-2 text-white"
+          className="mt-6 rounded bg-blue-600 px-4 py-2 text-white disabled:cursor-not-allowed disabled:bg-gray-300"
         >
-          Get started
+          {t('app.getStarted')}
         </button>
       </main>
     );

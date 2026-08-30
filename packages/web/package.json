@@ -13,10 +13,12 @@
   },
   "dependencies": {
     "@fif-calculator/engine": "*",
+    "i18next": "^26.4.0",
     "jspdf": "^4.2.1",
     "papaparse": "^5.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-i18next": "^17.0.12",
     "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },

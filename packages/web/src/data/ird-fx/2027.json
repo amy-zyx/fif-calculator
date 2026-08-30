@@ -1,0 +1,8 @@
+{
+  "incomeYear": 2027,
+  "sourceUrl": "https://www.ird.govt.nz/international-tax/business/foreign-currency/exchange-rates",
+  "retrievedOn": null,
+  "retrievedBy": null,
+  "note": "EMPTY. No rate here has been transcribed from IRD. See README.md in this directory for the refresh procedure. Until it is completed the app uses manual rate entry, which is fully functional.",
+  "rates": {}
+}

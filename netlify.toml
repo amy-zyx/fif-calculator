@@ -1,0 +1,21 @@
+[build]
+  command = "npm run build --workspace=packages/web"
+  publish = "packages/web/dist"
+
+# The meta CSP in index.html cannot set frame-ancestors, so the real policy is served
+# as an HTTP header here (and mirrored in packages/web/public/_headers for hosts that
+# read that file instead). connect-src is the privacy-relevant line: price/FX providers
+# and nothing else — see PRIVACY.md.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://www.alphavantage.co https://finnhub.io https://api.twelvedata.com; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), interest-cohort=()"
+
+# Static SPA with no router today, but this keeps a deep link from 404ing if one is added.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

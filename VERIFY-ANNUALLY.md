@@ -10,7 +10,7 @@ A human must re-check each one before relying on the app for a new income year, 
 | 2 | The FDR rate (currently 5%) | `packages/engine/src/tax-config.ts` | 5%, unchanged | 2026-08-30 |
 | 3 | The IR3 section/box label and the current FIF disclosure exemption (determination ITR37) for the target year | `packages/engine/src/filing-config.ts` | **Built, NOT verified.** Wording is deliberately section-level, never a box number. Every year currently has `verifiedOn: null`, and the app says so on screen and in exports until a human checks it. | — |
 | 4 | The Australian listed share exemption list (approved index, stapled-security exclusions) | `packages/engine/src/scope/auExemptionList.ts` | **Structure built, list EMPTY.** No ticker is currently treated as exempt. Must be populated from an authoritative source and verified before launch. | — |
-| 5 | The IRD FX rate tables bundled in `src/data/ird-fx/` | `packages/web/src/data/ird-fx/` (M6) | not yet built | — |
+| 5 | The IRD FX rate tables bundled in `src/data/ird-fx/` | `packages/web/src/data/ird-fx/` | **Structure built, datasets EMPTY.** No rate has been transcribed from IRD — inventing rates would produce authoritative-looking wrong figures. Refresh procedure is in that directory's README.md. Until done, users enter rates by hand, which is fully supported. | — |
 
 Each source file above should carry its own `TODO(verify)` comment listing exactly what
 to re-check, per spec §8 and §12.

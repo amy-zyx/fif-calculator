@@ -28,6 +28,16 @@ export default tseslint.config(
     },
   },
   {
+    // The ONLY place in the app allowed to reach the network. Every provider here is
+    // bound by the privacy contract in src/providers/types.ts: a ticker and a date may
+    // leave the browser, and nothing else. The `connect-src` CSP in index.html enforces
+    // the same boundary at the browser level.
+    files: ['src/providers/**'],
+    rules: {
+      'no-restricted-globals': 'off',
+    },
+  },
+  {
     ignores: ['dist/**'],
   },
 );
