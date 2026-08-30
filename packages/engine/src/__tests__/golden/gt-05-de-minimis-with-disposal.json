@@ -50,6 +50,7 @@
   "expected": {
     "status": "NOT_IN_FIF",
     "inFif": false,
-    "peakCostNzd": "49500.00"
+    "peakCostNzd": "49500.00",
+    "costBasisNzdPolicyA": "29500.00"
   }
 }

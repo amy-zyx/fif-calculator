@@ -26,6 +26,12 @@ function assertHolding(
   if (expected.acquiredCostNzd !== undefined) {
     expect(nzd(summary.acquiredCostNzd), `${ticker} acquired cost`).toBe(expected.acquiredCostNzd);
   }
+  for (const forbidden of expected.acquiredCostNzdMustNotBe ?? []) {
+    expect(
+      nzd(summary.acquiredCostNzd),
+      `${ticker} acquired cost must not be ${forbidden} — this is the silent failure the case guards against`,
+    ).not.toBe(forbidden);
+  }
   if (expected.acquiredQuantity !== undefined) {
     expect(summary.acquiredQuantity.toString(), `${ticker} acquired quantity`).toBe(expected.acquiredQuantity);
   }
@@ -98,6 +104,12 @@ describe('golden test suite', () => {
         });
       }
 
+      if (expected.costBasisNzdPolicyA !== undefined) {
+        it('reports the in-year acquired cost basis under policy A', () => {
+          expect(nzd(result.fxVariance.costBasisNzdPolicyA)).toBe(expected.costBasisNzdPolicyA);
+        });
+      }
+
       if (expected.peakCostNzdPolicyA !== undefined || expected.peakCostNzdPolicyB !== undefined) {
         it('reports the peak cost under both FX policies', () => {
           if (expected.peakCostNzdPolicyA !== undefined) {
@@ -167,6 +179,62 @@ describe('golden test suite', () => {
           }
         }
       }
+    });
+  }
+});
+
+/**
+ * Every assertion in `assertHolding` and the per-fixture blocks above is conditional
+ * on the fixture declaring that field. That keeps fixtures readable, but it means a
+ * fixture which declares nothing would pass while proving nothing — and a fixture
+ * that declares `holdings` alongside a non-OK status would have those expectations
+ * silently ignored, because a blocked or under-threshold result carries no
+ * per-holding working.
+ *
+ * These meta-tests close both holes, so the suite cannot rot into green-but-hollow.
+ */
+describe('golden fixture completeness', () => {
+  for (const fixture of FIXTURES) {
+    describe(`${fixture.id}`, () => {
+      const { expected } = fixture;
+
+      it('asserts something substantive for its status', () => {
+        switch (expected.status) {
+          case 'OK': {
+            const hasPortfolioTotal =
+              expected.fdrTotalNzd !== undefined ||
+              expected.cvTotalNzd !== undefined ||
+              expected.recommendedIncomeNzd !== undefined;
+            const hasHoldingWorking = Object.keys(expected.holdings ?? {}).length > 0;
+            expect(hasPortfolioTotal, `${fixture.id} must assert a portfolio total`).toBe(true);
+            expect(hasHoldingWorking, `${fixture.id} must assert at least one per-holding working`).toBe(true);
+            break;
+          }
+          case 'NOT_IN_FIF':
+            expect(expected.inFif, `${fixture.id} must assert inFif`).toBe(false);
+            expect(expected.peakCostNzd, `${fixture.id} must assert the peak cost`).toBeDefined();
+            break;
+          case 'BLOCKED':
+            expect(
+              (expected.blockerKinds ?? []).length,
+              `${fixture.id} must assert which blockers fired`,
+            ).toBeGreaterThan(0);
+            break;
+          case 'THRESHOLD_AMBIGUOUS':
+            expect(expected.peakCostNzdPolicyA, `${fixture.id} must assert the policy A peak`).toBeDefined();
+            expect(expected.peakCostNzdPolicyB, `${fixture.id} must assert the policy B peak`).toBeDefined();
+            break;
+        }
+      });
+
+      it('does not declare per-holding expectations that its status would silently ignore', () => {
+        if (Object.keys(expected.holdings ?? {}).length > 0) {
+          expect(
+            expected.status,
+            `${fixture.id} declares holdings, which are only asserted when status is OK`,
+          ).toBe('OK');
+        }
+      });
     });
   }
 });

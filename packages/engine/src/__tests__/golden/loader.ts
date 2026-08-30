@@ -74,6 +74,14 @@ export interface GoldenExpected {
   blockerKinds?: string[];
   peakCostNzdPolicyA?: string;
   peakCostNzdPolicyB?: string;
+  /**
+   * Total NZD cost of interests ACQUIRED during the year, under policy A. Available
+   * on every status, unlike `holdings` — which is why GT-5 uses it to prove the
+   * de minimis test reads holdings at a point in time rather than summing the year's
+   * purchases (a NOT_IN_FIF result exposes no per-holding working to assert against).
+   */
+  costBasisNzdPolicyA?: string;
+  /** Only asserted when `status` is OK — a non-OK result carries no per-holding working. */
   holdings?: Record<string, GoldenHoldingExpectation>;
 }
 
@@ -93,6 +101,12 @@ export interface GoldenHoldingExpectation {
   quickSaleGainsNzd?: string;
   averageCostNzd?: string;
   cvIncomeNzd?: string;
+  /**
+   * Values this figure must NOT take. Records the specific silent failure a case
+   * guards against, so the fixture states the trap in the open rather than relying
+   * on a reader inferring it from the correct value alone (see GT-10).
+   */
+  acquiredCostNzdMustNotBe?: string[];
 }
 
 function toInstrumentRef(src: GoldenInstrument): InstrumentRef {

@@ -37,10 +37,16 @@
   "expected": {
     "status": "OK",
     "inFif": true,
+    "fdrTotalNzd": "0.00",
+    "cvTotalNzd": "2564.10",
+    "recommendedMethod": "FDR",
+    "recommendedIncomeNzd": "0.00",
     "holdings": {
       "0700": {
         "acquiredCostNzd": "16666.67",
-        "acquiredQuantity": "100"
+        "acquiredQuantity": "100",
+        "acquiredCostNzdMustNotBe": ["640000.00", "80000.00"],
+        "closingMarketValueNzd": "19230.77"
       }
     }
   }
