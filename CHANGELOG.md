@@ -1,5 +1,39 @@
 # Changelog
 
+## Unreleased — spec gaps closed (FX variance panel, session import, local persistence)
+
+Three requirements that were specified but never built, none of which needed broker
+sample files.
+
+**FX variance panel (§5.7).** The engine already computed the A-vs-B comparison; nothing
+displayed it. Now shown on the results screen: cost basis, peak cost, the in-FIF verdict
+and the FIF income under each policy, plus the largest per-transaction differences. The
+engine gained `fifIncomeNzdPolicyA/B` for this — both are computed regardless of which
+policy is selected, because it is cheap and it is the fastest way to catch a mis-parsed
+rate column. When the two policies disagree about whether the taxpayer is in the regime
+at all, the panel says so in red.
+
+**Session file import.** Export existed since M4; the other half did not, so
+carry-forward was a one-way trip. Importing a `.fifsession.json` on the setup screen
+pulls its closing position in as this year's proposed opening holdings and advances the
+income year by one.
+
+**Local persistence (§2 hard rule 3).** Opt-in IndexedDB storage with a "Clear all my
+data" control, both in the header and visible on every screen including the landing
+page — someone returning only to erase their data should not have to walk back into the
+flow. Storage is off by default and `saveSession` gates on consent itself, so there is
+no path where transaction data is written without being asked for.
+
+**A bug found while verifying that control, worth recording.** The first implementation
+opened a new IndexedDB connection per call and never closed any. `deleteDatabase` then
+fired `onblocked` rather than deleting — and the handler resolved as though it had
+succeeded, so the app told the user their data was gone while it was still on disk. For
+a privacy control that is the worst possible failure. Fixed by owning a single cached
+connection and closing it before deleting; `clearAllData` now returns whether deletion
+actually happened, and the UI reports the truth either way. Covered by regression tests.
+
+218 tests (132 engine, 86 web).
+
 ## Unreleased — M6
 
 ### M6 — Providers, bundled FX structure, i18n, disclaimer gate, deploy

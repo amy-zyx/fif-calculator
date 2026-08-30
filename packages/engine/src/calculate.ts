@@ -52,6 +52,14 @@ export interface FxVariancePanel {
   peakCostNzdPolicyB: Decimal;
   inFifPolicyA: boolean;
   inFifPolicyB: boolean;
+  /**
+   * Recommended FIF income under each policy. Null when that policy is blocked, or
+   * when it puts the taxpayer under the threshold and there is therefore no figure.
+   * Both are computed regardless of which policy is selected (spec §5.7) — it is
+   * cheap, and it is the fastest way to catch a mis-parsed rate column.
+   */
+  fifIncomeNzdPolicyA: Decimal | null;
+  fifIncomeNzdPolicyB: Decimal | null;
   topDifferences: FxVarianceLine[];
 }
 
@@ -135,6 +143,13 @@ export function calculateFif(input: FifCalculationInput): FifCalculationResult {
   const deMinimisA = testDeMinimis(ledgerA.costTimeline, input.incomeYear, input.thresholdOverrideNzd);
   const deMinimisB = testDeMinimis(ledgerB.costTimeline, input.incomeYear, input.thresholdOverrideNzd);
 
+  const incomeUnder = (ledger: LedgerResult, deMinimis: DeMinimisResult): Decimal | null => {
+    if (ledger.blockers.length > 0 || !deMinimis.inFif) return null;
+    const inScopeHoldings = ledger.summaries.filter((s) => s.scope.inScope);
+    if (inScopeHoldings.length === 0) return null;
+    return electMethod(ledger.summaries, input.incomeYear).recommendedIncomeNzd;
+  };
+
   const fxVariance: FxVariancePanel = {
     costBasisNzdPolicyA: totalCostBasis(ledgerA),
     costBasisNzdPolicyB: totalCostBasis(ledgerB),
@@ -142,6 +157,8 @@ export function calculateFif(input: FifCalculationInput): FifCalculationResult {
     peakCostNzdPolicyB: deMinimisB.peakCostNzd,
     inFifPolicyA: deMinimisA.inFif,
     inFifPolicyB: deMinimisB.inFif,
+    fifIncomeNzdPolicyA: incomeUnder(ledgerA, deMinimisA),
+    fifIncomeNzdPolicyB: incomeUnder(ledgerB, deMinimisB),
     topDifferences: computeTopFxDifferences(deduped, input),
   };
 

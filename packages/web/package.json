@@ -14,6 +14,7 @@
   "dependencies": {
     "@fif-calculator/engine": "*",
     "i18next": "^26.4.0",
+    "idb": "^8.0.3",
     "jspdf": "^4.2.1",
     "papaparse": "^5.4.1",
     "react": "^18.3.1",

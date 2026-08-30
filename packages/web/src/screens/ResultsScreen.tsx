@@ -7,6 +7,7 @@ import {
   type HoldingYearSummary,
 } from '@fif-calculator/engine';
 import { DrillDownValue, type DrillDownDetail } from '../components/DrillDown';
+import { FxVariancePanel } from '../components/FxVariancePanel';
 import { downloadPdfSummary } from '../export/pdfSummary';
 import { downloadSessionFile } from '../export/sessionFile';
 import { downloadWorkingPaper } from '../export/workingPaper';
@@ -392,6 +393,8 @@ export function ResultsScreen({
       )}
 
       <ExcludedPanel result={result} />
+
+      <FxVariancePanel result={result} />
 
       <Section title="Export">
         <p className="mb-3 text-sm text-gray-600">
