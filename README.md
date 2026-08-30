@@ -13,15 +13,18 @@ be re-verified annually are tracked in [VERIFY-ANNUALLY.md](./VERIFY-ANNUALLY.md
 ## Status
 
 Milestones M0 (repo scaffold), M1 (canonical model, ingestion, Column Mapping Wizard,
-IBKR adapter) and M2 (the calculation engine: scope screening, de minimis timeline,
-FDR + quick sale, Comparative Value, method election, FX resolver, consolidation) are
-complete, with the full GT-1 … GT-12 golden suite green. See
-[CHANGELOG.md](./CHANGELOG.md) for detail and for two modelling choices flagged for
-review.
+IBKR adapter), M2 (the calculation engine: scope screening, de minimis timeline,
+FDR + quick sale, Comparative Value, method election, FX resolver, consolidation) and
+M3 (results UI with drill-down, and the upload/review/prices flow) are complete, with
+the full GT-1 … GT-12 golden suite green. See [CHANGELOG.md](./CHANGELOG.md) for
+detail and for the modelling choices flagged for review.
 
-**There is no results UI yet** — that is M3. The engine produces a FIF figure and is
-importable from `@fif-calculator/engine`, but the web app currently stops after
-transaction import and review.
+The app runs end to end and produces a FIF figure: set up → upload → review → prices →
+results, with every number on the results screen clickable through to its working.
+Prices, FX rates, and opening holdings are entered by hand — the app needs no API key
+and no network. Still to come: the xlsx working paper and PDF export (M4), the
+remaining broker adapters (M5), and the bundled IRD FX dataset, price providers, and
+i18n (M6).
 
 ## Repo layout
 

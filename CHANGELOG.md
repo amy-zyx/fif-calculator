@@ -1,5 +1,49 @@
 # Changelog
 
+## Unreleased — M3
+
+### M3 — Results UI with drill-down, and the upload/review/prices flow
+The app now runs end to end: set up → upload → review → prices → results. The engine
+built in M2 is wired in behind `runCalculation`, and the results screen renders the
+de minimis verdict, the FDR vs Comparative Value comparison with the recommended
+(lower) figure, the per-holding breakdown, foreign tax credits, and the "not included
+in FIF" panel.
+
+**Every figure on the results screen is clickable** and opens a drill-down showing the
+formula, each input, the rule behind it, and the source transactions — the de minimis
+number opens the full running cost timeline; a per-holding FDR figure opens the whole
+quick sale working including both branches of the `min()` and which one bound.
+
+Gating is enforced rather than advisory. Possible inter-broker transfers must each be
+confirmed before Review will continue, because assuming one manufactures a quick sale
+that never happened. Prices and FX rates must all be present before Calculate is
+enabled, and a missing value blocks with a named blocker rather than defaulting to
+zero.
+
+Prices, FX rates, and opening holdings are all entered by hand. That is the
+ManualEntryProvider path and it is deliberately complete on its own — the app works
+with no API key and no network. M6 adds the bundled IRD dataset and an optional price
+API on top; neither replaces manual entry. FX rates are entered and stored in IRD's
+published convention (units of foreign currency per 1 NZD), and the reciprocal is
+still taken in exactly one place inside the engine.
+
+`vite.config.ts` now honours `PORT`, so a supervising process can assign a free port
+instead of Vite silently falling back to 5174 when its default is taken.
+
+174 tests (132 engine, 42 web), including GT-1 driven through the real engine into the
+rendered UI, and a case asserting a missing closing price surfaces as a blocker rather
+than a figure.
+
+**Flagged for review — instrument identity across manual entry and broker files.**
+Broker adapters often leave `exchange` null (the IBKR adapter does), so their
+transactions key as `t:NVDA`. If a user types an exchange when entering an opening
+holding, that holding keys as `tx:NASDAQ:NVDA` and becomes a *different* instrument —
+the opening holding silently fails to attach to the traded position, and FDR is
+computed off an opening market value of zero. The engine is behaving as specified
+(§3.3 priority order), and the Review screen does flag ticker-only matches, but
+nothing yet reconciles the two spellings or prompts the user to merge them. Worth
+resolving before M4.
+
 ## Unreleased — M2
 
 ### M2 — The calculation engine
