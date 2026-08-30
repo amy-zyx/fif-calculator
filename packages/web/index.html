@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Strict CSP. connect-src is the privacy-relevant line: it allows only the
+      price/FX providers this app knows about, and nothing else. Ticker+date only
+      ever go out over these — see PRIVACY.md. A <meta> CSP can't set
+      frame-ancestors; set that (and this same policy) via HTTP headers on your
+      host too — see README.md "Content-Security-Policy".
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' https://www.alphavantage.co https://finnhub.io https://api.twelvedata.com; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self';"
+    />
+    <title>NZ FIF Tax Calculator</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

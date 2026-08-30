@@ -1,0 +1,19 @@
+Statement,Header,Field Name,Field Value
+Statement,Data,BrokerName,Interactive Brokers
+Statement,Data,Title,Activity Statement
+Statement,Data,Period,"June 1, 2025 - June 30, 2025"
+Account Information,Header,Field Name,Field Value
+Account Information,Data,Name,SYNTHETIC TEST ACCOUNT
+Account Information,Data,Account,U0000000
+Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,Proceeds,Comm/Fee,Code
+Trades,Data,Order,Stocks,USD,AAPL,"2025-06-10, 09:30:00",100,220,-22000,-1,O
+Trades,Data,Order,Stocks,USD,AAPL,"2025-09-15, 10:05:00",-40,235,9400,-1.2,C
+Trades,Data,Order,Stocks,USD,NVDA,"2025-06-20, 11:15:00",25,120,-3000,-1,O
+Trades,Data,SubTotal,Stocks,USD,AAPL,,,,-12600,-2.2,
+Trades,Data,Total,,,,,,,-16200,-3.2,
+Dividends,Header,Currency,Date,Description,Amount
+Dividends,Data,USD,2025-09-05,AAPL(US0378331005) Cash Dividend USD 0.25 per Share,25
+Dividends,Data,USD,2025-12-05,AAPL(US0378331005) Cash Dividend USD 0.25 per Share,15
+Open Positions,Header,DataDiscriminator,Asset Category,Currency,Symbol,Quantity,Mult,Cost Price,Cost Basis,Close Price,Value,Unrealized P/L
+Open Positions,Data,Summary,Stocks,USD,AAPL,60,1,220,13200,235,14100,900
+Open Positions,Data,Summary,Stocks,USD,NVDA,25,1,120,3000,150,3750,750
