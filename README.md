@@ -15,16 +15,21 @@ be re-verified annually are tracked in [VERIFY-ANNUALLY.md](./VERIFY-ANNUALLY.md
 Milestones M0 (repo scaffold), M1 (canonical model, ingestion, Column Mapping Wizard,
 IBKR adapter), M2 (the calculation engine: scope screening, de minimis timeline,
 FDR + quick sale, Comparative Value, method election, FX resolver, consolidation) and
-M3 (results UI with drill-down, and the upload/review/prices flow) are complete, with
-the full GT-1 … GT-12 golden suite green. See [CHANGELOG.md](./CHANGELOG.md) for
-detail and for the modelling choices flagged for review.
+M3 (results UI with drill-down, and the upload/review/prices flow) and M4 (xlsx working
+paper, PDF summary, carry-forward session file) are complete, with the full
+GT-1 … GT-12 golden suite green. See [CHANGELOG.md](./CHANGELOG.md) for detail and for
+the modelling choices flagged for review.
 
 The app runs end to end and produces a FIF figure: set up → upload → review → prices →
-results, with every number on the results screen clickable through to its working.
-Prices, FX rates, and opening holdings are entered by hand — the app needs no API key
-and no network. Still to come: the xlsx working paper and PDF export (M4), the
-remaining broker adapters (M5), and the bundled IRD FX dataset, price providers, and
-i18n (M6).
+results → export, with every number on the results screen clickable through to its
+working. Prices, FX rates, and opening holdings are entered by hand — the app needs no
+API key and no network. Still to come: the remaining broker adapters (M5), and the
+bundled IRD FX dataset, price providers, and i18n (M6).
+
+**Nothing in this repo has been checked against a real broker export or verified by a
+tax professional.** See [VERIFY-ANNUALLY.md](./VERIFY-ANNUALLY.md) — the Australian
+exemption list is empty, the filing guidance is unverified, and the IRD FX dataset is
+not built.
 
 ## Repo layout
 

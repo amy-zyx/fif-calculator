@@ -24,22 +24,25 @@ export interface FxRequirement {
 export function requiredClosingPrices(session: SessionState): PriceRequirement[] {
   const byKey = new Map<string, PriceRequirement>();
 
-  for (const holding of session.openingHoldings) {
-    const key = `${holding.ticker}|${holding.exchange ?? ''}`;
-    byKey.set(key, { ticker: holding.ticker, exchange: holding.exchange, currency: holding.currency });
-  }
-
+  // Transactions first, so their identity is the one shown. A hand-entered holding for
+  // the same ticker is reconciled onto it at calculation time (see runCalculation), so
+  // listing both would ask the user for the same price twice.
   for (const txn of allTxns(session)) {
     if (!txn.instrument) continue;
     // Options are not attributing FIF interests, so they are never valued at 31 March.
     if (txn.instrument.assetClass === 'OPTION') continue;
-    const key = `${txn.instrument.ticker}|${txn.instrument.exchange ?? ''}`;
+    byKey.set(txn.instrument.ticker.toUpperCase(), {
+      ticker: txn.instrument.ticker,
+      exchange: txn.instrument.exchange,
+      currency: txn.currency,
+    });
+  }
+
+  for (const holding of session.openingHoldings) {
+    if (holding.ticker.trim() === '') continue;
+    const key = holding.ticker.toUpperCase();
     if (!byKey.has(key)) {
-      byKey.set(key, {
-        ticker: txn.instrument.ticker,
-        exchange: txn.instrument.exchange,
-        currency: txn.currency,
-      });
+      byKey.set(key, { ticker: holding.ticker, exchange: holding.exchange, currency: holding.currency });
     }
   }
 
@@ -93,10 +96,12 @@ export function missingFxRates(session: SessionState): FxRequirement[] {
 }
 
 export function missingClosingPrices(session: SessionState): PriceRequirement[] {
+  // Matched on ticker, consistent with how requirements are keyed and how a
+  // hand-entered holding is reconciled onto its transactions at calculation time.
   return requiredClosingPrices(session).filter(
     (r) =>
       !session.closingPrices.some(
-        (p) => p.ticker === r.ticker && (p.exchange ?? '') === (r.exchange ?? '') && p.pricePerUnit.trim() !== '',
+        (p) => p.ticker.toUpperCase() === r.ticker.toUpperCase() && p.pricePerUnit.trim() !== '',
       ),
   );
 }

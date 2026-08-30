@@ -1,4 +1,5 @@
 import {
+  filingSentence,
   formatNzd,
   type Decimal,
   type ElectionResult,
@@ -6,6 +7,9 @@ import {
   type HoldingYearSummary,
 } from '@fif-calculator/engine';
 import { DrillDownValue, type DrillDownDetail } from '../components/DrillDown';
+import { downloadPdfSummary } from '../export/pdfSummary';
+import { downloadSessionFile } from '../export/sessionFile';
+import { downloadWorkingPaper } from '../export/workingPaper';
 import type { SessionState } from '../state/session';
 
 const nz = (d: Decimal) => `NZD ${formatNzd(d)}`;
@@ -388,6 +392,37 @@ export function ResultsScreen({
       )}
 
       <ExcludedPanel result={result} />
+
+      <Section title="Export">
+        <p className="mb-3 text-sm text-gray-600">
+          The working paper is the accountant-facing document: one tab per section, with every figure traceable
+          back to the transactions and rates behind it.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => downloadWorkingPaper(result, session)}
+            className="rounded bg-blue-600 px-4 py-2 text-sm text-white"
+          >
+            Working paper (.xlsx)
+          </button>
+          <button
+            type="button"
+            onClick={() => downloadPdfSummary(result, session)}
+            className="rounded border px-4 py-2 text-sm"
+          >
+            Summary (.pdf)
+          </button>
+          <button
+            type="button"
+            onClick={() => downloadSessionFile(result, session)}
+            className="rounded border px-4 py-2 text-sm"
+          >
+            Carry forward to next year (.fifsession.json)
+          </button>
+        </div>
+        <p className="mt-3 text-sm text-gray-700">{filingSentence(session.incomeYear)}</p>
+      </Section>
 
       <p className="border-t pt-4 text-xs text-gray-500">
         This tool provides an estimate only and is not tax advice. FIF calculations depend on facts and elections

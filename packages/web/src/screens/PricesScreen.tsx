@@ -41,9 +41,7 @@ export function PricesScreen({
   const ready = stillMissingPrices.length === 0 && stillMissingRates.length === 0;
 
   function setClosingPrice(ticker: string, exchange: string | null, patch: Partial<ManualClosingPrice>) {
-    const existing = session.closingPrices.find(
-      (p) => p.ticker === ticker && (p.exchange ?? '') === (exchange ?? ''),
-    );
+    const existing = session.closingPrices.find((p) => p.ticker.toUpperCase() === ticker.toUpperCase());
     const next = existing
       ? session.closingPrices.map((p) =>
           p === existing ? { ...p, ...patch } : p,
@@ -205,7 +203,7 @@ export function PricesScreen({
           <tbody>
             {neededPrices.map((req) => {
               const entry = session.closingPrices.find(
-                (p) => p.ticker === req.ticker && (p.exchange ?? '') === (req.exchange ?? ''),
+                (p) => p.ticker.toUpperCase() === req.ticker.toUpperCase(),
               );
               return (
                 <tr key={`${req.ticker}|${req.exchange ?? ''}`} className="border-b border-gray-100">

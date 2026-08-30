@@ -1,5 +1,48 @@
 # Changelog
 
+## Unreleased — M4
+
+### M4 — Working paper, PDF summary, and carry-forward
+Three exports from the results screen. The **xlsx working paper** is the
+accountant-facing deliverable, with one tab per section: Summary, De minimis timeline,
+Per-holding FDR, Quick sale workings (both branches of the `min()` and which one bound),
+Per-holding CV, Foreign tax credits, FX rates, All transactions with their verbatim
+source row, and Assumptions & warnings. Amounts are written as numbers rather than
+preformatted strings, so a reviewer can total and re-check a column in Excel; they are
+rounded to cents at that boundary, having been carried at full Decimal precision
+throughout. Built with SheetJS, already a dependency for reading broker exports, rather
+than adding exceljs for the write path alone.
+
+The **PDF summary** is a short one-to-two page record to file alongside the return, and
+the **`.fifsession.json`** carries this year's closing position forward as next year's
+*proposed* opening holdings.
+
+`filing-config.ts` holds per-year filing guidance with a `sourceUrl` and a `verifiedOn`
+date. Per spec §8 it never asserts a box number — box numbering changes between years
+and a stale number is worse than none because it reads as authoritative. Every year is
+currently `verifiedOn: null`, and both the UI and every export say plainly that the
+guidance is unverified until a human checks it.
+
+**Fixed: the instrument-identity trap flagged in M3.** Broker adapters often leave
+`exchange` null, so a user who typed an exchange when entering an opening holding
+created a different instrument key; the holding silently failed to attach to the traded
+position and FDR was computed off an opening market value of zero. Hand-entered
+instruments are now reconciled onto the transaction's own identity when the ticker
+matches — the imported file being the authoritative record of what was traded. A ticker
+that appears under two identities (the same symbol on two exchanges) is deliberately
+left unreconciled, since only the user's entry can distinguish those. Confirmed in the
+browser: the Prices screen previously asked for the same closing price twice and now
+asks once, and FDR comes out at NZD 8,333.33 rather than zero.
+
+`HoldingYearSummary` gained `closingCostNzd` — the remaining cost basis at year end.
+Carry-forward needs it, and it must not be confused with closing *market* value: cost
+drives the de minimis test, market value drives FDR, and substituting one for the other
+silently changes the threshold verdict.
+
+187 tests (132 engine, 55 web). Verified end to end in a browser: all three exports
+produce real files (34.9 KB xlsx, 5.6 KB PDF, 857-byte session file) with no console
+errors.
+
 ## Unreleased — M3
 
 ### M3 — Results UI with drill-down, and the upload/review/prices flow

@@ -56,6 +56,12 @@ export interface HoldingYearSummary {
 
   closingQuantity: Decimal;
   closingMarketValueNzd: Decimal;
+  /**
+   * Remaining NZD cost basis of the holding at year end, after disposals have removed
+   * their share. This is what carries forward as next year's opening cost — the
+   * de minimis test is on cost, so it must not be confused with closing MARKET value.
+   */
+  closingCostNzd: Decimal;
 
   /** Greatest quantity held at any moment during the year (spec §5.3). */
   peakQuantity: Decimal;
@@ -223,6 +229,7 @@ export function buildLedger(
       openingMarketValueNzd,
       closingQuantity: holding.quantity,
       closingMarketValueNzd: ZERO,
+      closingCostNzd: ZERO,
       peakQuantity: holding.quantity,
       acquiredQuantity: ZERO,
       acquiredCostNzd: ZERO,
@@ -249,6 +256,7 @@ export function buildLedger(
       openingMarketValueNzd: ZERO,
       closingQuantity: ZERO,
       closingMarketValueNzd: ZERO,
+      closingCostNzd: ZERO,
       peakQuantity: ZERO,
       acquiredQuantity: ZERO,
       acquiredCostNzd: ZERO,
@@ -419,6 +427,7 @@ export function buildLedger(
   for (const [key, summary] of summaries) {
     const current = state.get(key);
     summary.closingQuantity = current?.quantity ?? ZERO;
+    summary.closingCostNzd = current?.costNzd ?? ZERO;
 
     if (!summary.scope.inScope) continue;
 
