@@ -1,0 +1,55 @@
+{
+  "id": "GT-5",
+  "title": "De minimis with a disposal — cost is tracked on holdings, not cumulative purchases",
+  "description": "Cost peaks at NZD 48,000, a sale drops it to NZD 20,000, then purchases bring it back to NZD 49,500. Cumulative purchases across the year total NZD 77,500, which would wrongly breach the threshold — but the test is on cost of holdings AT A POINT IN TIME, so the peak is NZD 49,500 and the taxpayer is NOT in FIF.",
+  "input": {
+    "incomeYear": 2026,
+    "fxPolicy": "A",
+    "costBasisMethod": "AVERAGE",
+    "irdRates": {
+      "USD": { "2025-04-01": "1.0000" }
+    },
+    "openingHoldings": [
+      {
+        "ticker": "AAA",
+        "exchange": "NASDAQ",
+        "quantity": "480",
+        "marketPricePerUnit": "100.00",
+        "currency": "USD",
+        "costNzd": "48000"
+      }
+    ],
+    "closingPrices": [
+      { "ticker": "AAA", "exchange": "NASDAQ", "pricePerUnit": "100.00", "currency": "USD" }
+    ],
+    "txns": [
+      {
+        "id": "gt5-sell",
+        "date": "2025-08-01",
+        "type": "SELL",
+        "ticker": "AAA",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "280",
+        "price": "100",
+        "gross": "28000"
+      },
+      {
+        "id": "gt5-buy",
+        "date": "2025-10-01",
+        "type": "BUY",
+        "ticker": "AAA",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "295",
+        "price": "100",
+        "gross": "29500"
+      }
+    ]
+  },
+  "expected": {
+    "status": "NOT_IN_FIF",
+    "inFif": false,
+    "peakCostNzd": "49500.00"
+  }
+}

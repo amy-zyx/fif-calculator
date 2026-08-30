@@ -1,0 +1,54 @@
+{
+  "id": "GT-1",
+  "title": "FDR simple, and CV wins",
+  "description": "A single holding falls in value over the year. FDR taxes 5% of the opening market value regardless; CV produces a loss, which is floored to nil. The engine must recommend CV at NZD 0 — and the flooring must be visible, not silent.",
+  "input": {
+    "incomeYear": 2026,
+    "fxPolicy": "A",
+    "costBasisMethod": "AVERAGE",
+    "irdRates": {
+      "USD": { "2025-04-01": "0.5800", "2026-03-31": "0.6000" }
+    },
+    "openingHoldings": [
+      {
+        "ticker": "AAPL",
+        "exchange": "NASDAQ",
+        "quantity": "1000",
+        "marketPricePerUnit": "220.00",
+        "currency": "USD",
+        "costNzd": "379310.34"
+      }
+    ],
+    "closingPrices": [
+      { "ticker": "AAPL", "exchange": "NASDAQ", "pricePerUnit": "200.00", "currency": "USD" }
+    ],
+    "txns": [
+      {
+        "id": "gt1-div",
+        "date": "2025-09-05",
+        "type": "DIVIDEND",
+        "ticker": "AAPL",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "gross": "1000"
+      }
+    ]
+  },
+  "expected": {
+    "status": "OK",
+    "inFif": true,
+    "fdrTotalNzd": "18965.52",
+    "cvTotalNzd": "0.00",
+    "cvRawTotalNzd": "-44252.87",
+    "recommendedMethod": "CV",
+    "recommendedIncomeNzd": "0.00",
+    "holdings": {
+      "AAPL": {
+        "openingMarketValueNzd": "379310.34",
+        "closingMarketValueNzd": "333333.33",
+        "quickSaleApplies": false,
+        "fdrIncomeNzd": "18965.52"
+      }
+    }
+  }
+}

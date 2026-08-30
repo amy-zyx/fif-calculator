@@ -1,0 +1,37 @@
+{
+  "id": "GT-12",
+  "title": "FX policy flips the de minimis verdict — blocking",
+  "description": "The same purchase costs NZD 49,900 under IRD rates and NZD 50,745.76 under the broker's dealt rate. One is under the NZD 50,000 threshold and one is over, so the FX policy alone decides whether the taxpayer is in the FIF regime at all. The engine must refuse to emit a single recommended figure and return a blocking THRESHOLD_AMBIGUOUS showing both. (The spec illustrates this with NZD 50,300; the broker rate here is a round 0.5900, which lands at NZD 50,745.76 — the same either-side-of-the-line situation.)",
+  "input": {
+    "incomeYear": 2026,
+    "fxPolicy": "A",
+    "costBasisMethod": "AVERAGE",
+    "irdRates": {
+      "USD": { "2025-04-01": "0.6000" }
+    },
+    "openingHoldings": [],
+    "closingPrices": [
+      { "ticker": "AAA", "exchange": "NASDAQ", "pricePerUnit": "300.00", "currency": "USD" }
+    ],
+    "txns": [
+      {
+        "id": "gt12-buy",
+        "date": "2025-06-10",
+        "type": "BUY",
+        "ticker": "AAA",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "100",
+        "price": "299.40",
+        "gross": "29940",
+        "brokerQuotedRate": "0.5900",
+        "brokerQuoteTo": "NZD"
+      }
+    ]
+  },
+  "expected": {
+    "status": "THRESHOLD_AMBIGUOUS",
+    "peakCostNzdPolicyA": "49900.00",
+    "peakCostNzdPolicyB": "50745.76"
+  }
+}

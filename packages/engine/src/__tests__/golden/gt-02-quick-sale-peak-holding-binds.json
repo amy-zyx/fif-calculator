@@ -1,0 +1,75 @@
+{
+  "id": "GT-2",
+  "title": "Quick sale, peak holding method binds",
+  "description": "Shares bought and sold within the same year. The quick sale adjustment is the LESSER of the peak holding amount and the actual gain; here the peak holding amount (NZD 1,375.00) is smaller than the actual gain (NZD 10,000.00), so it binds. thresholdOverrideNzd isolates the FDR mechanics from the de minimis test.",
+  "input": {
+    "incomeYear": 2026,
+    "fxPolicy": "A",
+    "costBasisMethod": "AVERAGE",
+    "thresholdOverrideNzd": "0",
+    "irdRates": {
+      "USD": { "2025-04-01": "0.6000" }
+    },
+    "openingHoldings": [],
+    "closingPrices": [
+      { "ticker": "NVDA", "exchange": "NASDAQ", "pricePerUnit": "150.00", "currency": "USD" }
+    ],
+    "txns": [
+      {
+        "id": "gt2-buy1",
+        "date": "2025-06-10",
+        "type": "BUY",
+        "ticker": "NVDA",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "100",
+        "price": "100",
+        "gross": "10000"
+      },
+      {
+        "id": "gt2-buy2",
+        "date": "2025-06-20",
+        "type": "BUY",
+        "ticker": "NVDA",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "100",
+        "price": "120",
+        "gross": "12000"
+      },
+      {
+        "id": "gt2-sell",
+        "date": "2025-09-15",
+        "type": "SELL",
+        "ticker": "NVDA",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "150",
+        "price": "150",
+        "gross": "22500"
+      }
+    ]
+  },
+  "expected": {
+    "status": "OK",
+    "inFif": true,
+    "fdrTotalNzd": "1375.00",
+    "holdings": {
+      "NVDA": {
+        "openingMarketValueNzd": "0.00",
+        "acquiredQuantity": "200",
+        "acquiredCostNzd": "36666.67",
+        "disposalProceedsNzd": "37500.00",
+        "peakQuantity": "200",
+        "closingQuantity": "50",
+        "quickSaleApplies": true,
+        "averageCostNzd": "183.33",
+        "peakHoldingAmountNzd": "1375.00",
+        "quickSaleGainsNzd": "10000.00",
+        "quickSaleBindingBranch": "PEAK_HOLDING",
+        "quickSaleAdjustmentNzd": "1375.00",
+        "fdrIncomeNzd": "1375.00"
+      }
+    }
+  }
+}

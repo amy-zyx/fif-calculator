@@ -1,0 +1,106 @@
+{
+  "id": "GT-6",
+  "title": "Multi-broker dedupe and a genuine inter-broker transfer",
+  "description": "The same 100 TSLA trade appears in both a Tiger monthly statement and a Tiger full-history export, and must dedupe to one via the broker's own order reference. Separately, 200 MSFT genuinely move from Sharesies to IBKR: with both legs confirmed, this is a continuing holding, NOT a disposal plus a re-acquisition. Getting that wrong would manufacture a fake quick sale out of nothing. FDR must equal 5% of the MSFT opening value and nothing more.",
+  "input": {
+    "incomeYear": 2026,
+    "fxPolicy": "A",
+    "costBasisMethod": "AVERAGE",
+    "thresholdOverrideNzd": "0",
+    "irdRates": {
+      "USD": { "2025-04-01": "0.6000" }
+    },
+    "openingHoldings": [
+      {
+        "ticker": "MSFT",
+        "exchange": "NASDAQ",
+        "quantity": "200",
+        "marketPricePerUnit": "400.00",
+        "currency": "USD",
+        "costNzd": "100000"
+      }
+    ],
+    "closingPrices": [
+      { "ticker": "TSLA", "exchange": "NASDAQ", "pricePerUnit": "250.00", "currency": "USD" },
+      { "ticker": "MSFT", "exchange": "NASDAQ", "pricePerUnit": "420.00", "currency": "USD" }
+    ],
+    "confirmedTransferTxnIds": ["gt6-msft-out", "gt6-msft-in"],
+    "txns": [
+      {
+        "id": "gt6-tsla-monthly",
+        "date": "2025-06-10",
+        "type": "BUY",
+        "ticker": "TSLA",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "100",
+        "price": "200",
+        "gross": "20000",
+        "brokerId": "TIGER",
+        "brokerRef": "TIGER-ORD-001",
+        "account": "tiger_monthly_statement"
+      },
+      {
+        "id": "gt6-tsla-history",
+        "date": "2025-06-10",
+        "type": "BUY",
+        "ticker": "TSLA",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "100",
+        "price": "200",
+        "gross": "20000",
+        "brokerId": "TIGER",
+        "brokerRef": "TIGER-ORD-001",
+        "account": "tiger_full_history"
+      },
+      {
+        "id": "gt6-msft-out",
+        "date": "2025-09-01",
+        "type": "TRANSFER_OUT",
+        "ticker": "MSFT",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "200",
+        "gross": "0",
+        "brokerId": "SHARESIES",
+        "account": "sharesies"
+      },
+      {
+        "id": "gt6-msft-in",
+        "date": "2025-09-03",
+        "type": "TRANSFER_IN",
+        "ticker": "MSFT",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "200",
+        "gross": "0",
+        "brokerId": "IBKR",
+        "account": "ibkr"
+      }
+    ]
+  },
+  "expected": {
+    "status": "OK",
+    "inFif": true,
+    "duplicatesRemovedCount": 1,
+    "fdrTotalNzd": "6666.67",
+    "recommendedMethod": "FDR",
+    "recommendedIncomeNzd": "6666.67",
+    "holdings": {
+      "MSFT": {
+        "openingMarketValueNzd": "133333.33",
+        "peakQuantity": "200",
+        "closingQuantity": "200",
+        "acquiredQuantity": "0",
+        "quickSaleApplies": false,
+        "fdrIncomeNzd": "6666.67"
+      },
+      "TSLA": {
+        "acquiredQuantity": "100",
+        "acquiredCostNzd": "33333.33",
+        "fdrIncomeNzd": "0.00"
+      }
+    }
+  }
+}

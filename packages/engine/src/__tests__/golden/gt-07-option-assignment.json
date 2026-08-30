@@ -1,0 +1,60 @@
+{
+  "id": "GT-7",
+  "title": "Option assignment creates a share acquisition; the premium row is excluded",
+  "description": "A cash-secured put on SPY is assigned at USD 500 x 100. That assignment is a real share acquisition with NZD cost = strike x quantity / FX = NZD 83,333.33. The option premium row itself is NOT a FIF interest and is excluded — but it must appear in the 'not included in FIF' panel rather than vanishing, because premium income is generally taxable under other rules. The premium is deliberately NOT netted off the share cost by default.",
+  "input": {
+    "incomeYear": 2026,
+    "fxPolicy": "A",
+    "costBasisMethod": "AVERAGE",
+    "thresholdOverrideNzd": "0",
+    "irdRates": {
+      "USD": { "2025-04-01": "0.6000" }
+    },
+    "openingHoldings": [],
+    "closingPrices": [
+      { "ticker": "SPY", "exchange": "NYSE", "pricePerUnit": "520.00", "currency": "USD" }
+    ],
+    "txns": [
+      {
+        "id": "gt7-premium",
+        "date": "2025-06-01",
+        "type": "OPTION_TRADE",
+        "ticker": "SPY 250620P500",
+        "exchange": "CBOE",
+        "assetClass": "OPTION",
+        "currency": "USD",
+        "quantity": "1",
+        "gross": "1000"
+      },
+      {
+        "id": "gt7-assignment",
+        "date": "2025-07-01",
+        "type": "OPTION_ASSIGNMENT",
+        "ticker": "SPY",
+        "exchange": "NYSE",
+        "assetClass": "EQUITY",
+        "currency": "USD",
+        "quantity": "100",
+        "price": "500",
+        "gross": "50000"
+      }
+    ]
+  },
+  "expected": {
+    "status": "OK",
+    "inFif": true,
+    "excludedTickers": ["SPY 250620P500"],
+    "fdrTotalNzd": "0.00",
+    "cvTotalNzd": "3333.33",
+    "recommendedMethod": "FDR",
+    "recommendedIncomeNzd": "0.00",
+    "holdings": {
+      "SPY": {
+        "acquiredQuantity": "100",
+        "acquiredCostNzd": "83333.33",
+        "closingMarketValueNzd": "86666.67",
+        "quickSaleApplies": false
+      }
+    }
+  }
+}

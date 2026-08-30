@@ -1,0 +1,68 @@
+{
+  "id": "GT-3",
+  "title": "Quick sale, actual gain binds",
+  "description": "Identical to GT-2 except the shares are sold at USD 115 rather than USD 150. The peak holding amount is unchanged at NZD 1,375.00, but the actual gain falls to NZD 1,250.00 and now binds instead. This asserts the engine selects the OTHER branch of the min().",
+  "input": {
+    "incomeYear": 2026,
+    "fxPolicy": "A",
+    "costBasisMethod": "AVERAGE",
+    "thresholdOverrideNzd": "0",
+    "irdRates": {
+      "USD": { "2025-04-01": "0.6000" }
+    },
+    "openingHoldings": [],
+    "closingPrices": [
+      { "ticker": "NVDA", "exchange": "NASDAQ", "pricePerUnit": "150.00", "currency": "USD" }
+    ],
+    "txns": [
+      {
+        "id": "gt3-buy1",
+        "date": "2025-06-10",
+        "type": "BUY",
+        "ticker": "NVDA",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "100",
+        "price": "100",
+        "gross": "10000"
+      },
+      {
+        "id": "gt3-buy2",
+        "date": "2025-06-20",
+        "type": "BUY",
+        "ticker": "NVDA",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "100",
+        "price": "120",
+        "gross": "12000"
+      },
+      {
+        "id": "gt3-sell",
+        "date": "2025-09-15",
+        "type": "SELL",
+        "ticker": "NVDA",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "150",
+        "price": "115",
+        "gross": "17250"
+      }
+    ]
+  },
+  "expected": {
+    "status": "OK",
+    "inFif": true,
+    "fdrTotalNzd": "1250.00",
+    "holdings": {
+      "NVDA": {
+        "disposalProceedsNzd": "28750.00",
+        "peakHoldingAmountNzd": "1375.00",
+        "quickSaleGainsNzd": "1250.00",
+        "quickSaleBindingBranch": "ACTUAL_GAINS",
+        "quickSaleAdjustmentNzd": "1250.00",
+        "fdrIncomeNzd": "1250.00"
+      }
+    }
+  }
+}

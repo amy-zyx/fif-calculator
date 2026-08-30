@@ -12,11 +12,16 @@ be re-verified annually are tracked in [VERIFY-ANNUALLY.md](./VERIFY-ANNUALLY.md
 
 ## Status
 
-Milestones M0 (repo scaffold) and M1 (canonical model, ingestion, Column Mapping
-Wizard, IBKR adapter) are complete. See [CHANGELOG.md](./CHANGELOG.md) for what that
-covers and what's deliberately deferred. **The calculation engine itself (scope
-screening, de minimis, FDR/CV, FX resolver, golden tests) is M2 and has not started
-yet** — nothing in this repo currently produces a FIF income figure.
+Milestones M0 (repo scaffold), M1 (canonical model, ingestion, Column Mapping Wizard,
+IBKR adapter) and M2 (the calculation engine: scope screening, de minimis timeline,
+FDR + quick sale, Comparative Value, method election, FX resolver, consolidation) are
+complete, with the full GT-1 … GT-12 golden suite green. See
+[CHANGELOG.md](./CHANGELOG.md) for detail and for two modelling choices flagged for
+review.
+
+**There is no results UI yet** — that is M3. The engine produces a FIF figure and is
+importable from `@fif-calculator/engine`, but the web app currently stops after
+transaction import and review.
 
 ## Repo layout
 

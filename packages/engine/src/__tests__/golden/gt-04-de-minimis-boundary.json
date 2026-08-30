@@ -1,0 +1,53 @@
+{
+  "id": "GT-4",
+  "title": "De minimis boundary — exceeded on a single day",
+  "description": "Holdings cost NZD 49,000 all year until a NZD 3,000 purchase on 2 Feb 2026 pushes the running total to NZD 52,000 for 12 days. Exceeding the threshold on even one day brings the WHOLE portfolio into FIF for the WHOLE year — including the first $50,000. The FDR figure of NZD 2,450.00 is 5% of the full NZD 49,000 opening value, not of the NZD 2,000 excess. IRD USD rate is 1.0 so the FX layer does not obscure the timeline arithmetic.",
+  "input": {
+    "incomeYear": 2026,
+    "fxPolicy": "A",
+    "costBasisMethod": "AVERAGE",
+    "irdRates": {
+      "USD": { "2025-04-01": "1.0000" }
+    },
+    "openingHoldings": [
+      {
+        "ticker": "AAA",
+        "exchange": "NASDAQ",
+        "quantity": "490",
+        "marketPricePerUnit": "100.00",
+        "currency": "USD",
+        "costNzd": "49000"
+      }
+    ],
+    "closingPrices": [
+      { "ticker": "AAA", "exchange": "NASDAQ", "pricePerUnit": "100.00", "currency": "USD" }
+    ],
+    "txns": [
+      {
+        "id": "gt4-buy",
+        "date": "2026-02-02",
+        "type": "BUY",
+        "ticker": "AAA",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "30",
+        "price": "100",
+        "gross": "3000"
+      }
+    ]
+  },
+  "expected": {
+    "status": "OK",
+    "inFif": true,
+    "peakCostNzd": "52000.00",
+    "peakCostDate": "2026-02-02",
+    "fdrTotalNzd": "2450.00",
+    "holdings": {
+      "AAA": {
+        "openingMarketValueNzd": "49000.00",
+        "fdrIncomeNzd": "2450.00",
+        "quickSaleApplies": false
+      }
+    }
+  }
+}

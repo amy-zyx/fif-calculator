@@ -1,0 +1,37 @@
+{
+  "id": "GT-11",
+  "title": "Inverted broker rate is flagged, never auto-applied",
+  "description": "A file quotes 'Exchange rate = 1.7241' on a USD trade while the IRD rate for that date is 0.5800. The quoted value is far closer to the reciprocal of the IRD rate than to the rate itself, so the engine must flag the inversion and BLOCK for confirmation rather than silently inverting. The companion case — a rate of 0.5850 against IRD 0.5800, a normal broker spread — is asserted in resolver.test.ts to be accepted without a prompt.",
+  "input": {
+    "incomeYear": 2026,
+    "fxPolicy": "B",
+    "costBasisMethod": "AVERAGE",
+    "thresholdOverrideNzd": "0",
+    "irdRates": {
+      "USD": { "2025-04-01": "0.5800" }
+    },
+    "openingHoldings": [],
+    "closingPrices": [
+      { "ticker": "AAPL", "exchange": "NASDAQ", "pricePerUnit": "200.00", "currency": "USD" }
+    ],
+    "txns": [
+      {
+        "id": "gt11-buy",
+        "date": "2025-06-10",
+        "type": "BUY",
+        "ticker": "AAPL",
+        "exchange": "NASDAQ",
+        "currency": "USD",
+        "quantity": "100",
+        "price": "220",
+        "gross": "22000",
+        "brokerQuotedRate": "1.7241",
+        "brokerQuoteTo": "NZD"
+      }
+    ]
+  },
+  "expected": {
+    "status": "BLOCKED",
+    "blockerKinds": ["FX_UNRESOLVED"]
+  }
+}
