@@ -81,6 +81,13 @@ export interface PersistedSession {
   confirmedTransferTxnIds: string[];
   accountBaseCurrencies: Record<string, string>;
   scopeOverrides: SessionState['scopeOverrides'];
+  /**
+   * Persisted because it changes which trades exist at all. If this reverted to the
+   * default on reload, a user who had deliberately re-included AUD would silently have
+   * those trades dropped again, changing their FIF figure without them touching
+   * anything.
+   */
+  excludedCurrencies: SessionState['excludedCurrencies'];
 }
 
 export function toPersisted(session: SessionState): PersistedSession {
@@ -95,6 +102,7 @@ export function toPersisted(session: SessionState): PersistedSession {
     confirmedTransferTxnIds: session.confirmedTransferTxnIds,
     accountBaseCurrencies: session.accountBaseCurrencies,
     scopeOverrides: session.scopeOverrides,
+    excludedCurrencies: session.excludedCurrencies,
   };
 }
 

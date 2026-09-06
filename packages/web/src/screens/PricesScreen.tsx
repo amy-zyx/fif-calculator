@@ -1,5 +1,6 @@
 import { getIncomeYearTaxConfig } from '@fif-calculator/engine';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { fetchFxRates } from '../providers/fxRateProvider';
 import {
   coveringRate,
   IRD_FX_URL,
@@ -17,13 +18,13 @@ import {
 } from '../state/session';
 
 /**
- * Spec §7 step 5 and §2: the exact list of values the calculation needs, entered by
- * hand. This is the ManualEntryProvider path, and it is deliberately fully functional
- * on its own — the app must work end to end with no API key and no network. Any
- * missing value blocks, and is never silently treated as zero.
+ * Spec §7 step 5 and §2: the exact list of values the calculation needs.
  *
- * M6 adds the bundled IRD FX dataset and an optional price API on top of this; neither
- * replaces it.
+ * Manual entry remains the baseline and is fully functional on its own — the app works
+ * end to end with no API key and no network, and any missing value blocks rather than
+ * being silently treated as zero. Fetching published FX rates is an OPTIONAL convenience
+ * layered on top: it is only triggered by an explicit click, it fills blanks only, and
+ * it never overwrites a figure the user typed.
  */
 export function PricesScreen({
   session,
@@ -37,6 +38,10 @@ export function PricesScreen({
   onBack: () => void;
 }) {
   const config = getIncomeYearTaxConfig(session.incomeYear);
+  const [fetchState, setFetchState] = useState<{
+    status: 'idle' | 'loading' | 'done' | 'error';
+    message: string;
+  }>({ status: 'idle', message: '' });
   const neededPrices = useMemo(() => requiredClosingPrices(session), [session]);
   const neededRates = useMemo(() => requiredFxRates(session), [session]);
   const stillMissingPrices = missingClosingPrices(session);
@@ -68,12 +73,57 @@ export function PricesScreen({
   }
 
   /**
+   * Fetches published market rates for every date still outstanding.
+   *
+   * Only blanks are filled — a figure the user typed is never overwritten — and the
+   * source and the date the rate actually belongs to are recorded, because ECB does not
+   * publish at weekends and a 31 March that lands on one would otherwise quietly use a
+   * different day's rate.
+   */
+  async function fetchPublicRates() {
+    setFetchState({ status: 'loading', message: 'Fetching published rates…' });
+    const outstanding = neededRates.filter(
+      (r) => coveringRate(session, r.currency, r.date) === null,
+    );
+    const byDate = new Map<string, string[]>();
+    for (const r of outstanding) {
+      byDate.set(r.date, [...(byDate.get(r.date) ?? []), r.currency]);
+    }
+    if (byDate.size === 0) {
+      setFetchState({ status: 'idle', message: 'Nothing outstanding to fetch.' });
+      return;
+    }
+
+    const result = await fetchFxRates([...byDate.entries()].map(([date, currencies]) => ({ date, currencies })));
+    const next = { ...session.fxRates };
+    const notes: string[] = [];
+    for (const quote of result.quotes) {
+      const key = fxRateKey(quote.currency, quote.requestedDate);
+      const existing = next[key];
+      if (existing && existing.trim() !== '') continue;
+      next[key] = quote.rate;
+      if (quote.actualDate !== quote.requestedDate) {
+        notes.push(`${quote.currency} ${quote.requestedDate}: used the rate published ${quote.actualDate}.`);
+      }
+    }
+    onChange({ fxRates: next });
+
+    const failed = result.failures.length;
+    setFetchState({
+      status: failed > 0 ? 'error' : 'done',
+      message:
+        `Filled ${result.quotes.length} rate(s) from ECB reference rates.` +
+        (failed > 0 ? ` ${failed} could not be fetched — enter those by hand.` : '') +
+        (notes.length > 0 ? ` ${notes.join(' ')}` : ''),
+    });
+  }
+
+  /**
    * Copies one rate onto every date for that currency that has no rate of its own.
    *
-   * This is an explicit action with the value shown on the button, never a silent
-   * default — the user is asserting that this published rate applies to those dates,
-   * which is how IRD's monthly tables work, rather than the app inventing a number.
-   * Dates that already have their own figure are left alone.
+   * An explicit action with the value shown on the button, never a silent default — the
+   * user is asserting that this published rate applies to those dates, which is how
+   * IRD's monthly tables work. Dates with their own figure are left alone.
    */
   function fillDown(currency: string, value: string) {
     const next = { ...session.fxRates };
@@ -114,8 +164,8 @@ export function PricesScreen({
         <div>
           <h1 className="text-xl font-bold">Prices and FX rates</h1>
           <p className="text-sm text-gray-600">
-            Enter these by hand. Nothing is fetched, and a missing value blocks the calculation rather than
-            defaulting to zero.
+            Closing prices are entered by hand. Exchange rates can be fetched from a public source or typed in.
+            A missing value blocks the calculation rather than defaulting to zero.
           </p>
         </div>
         <button type="button" onClick={onBack} className="rounded border px-3 py-1 text-sm">
@@ -283,6 +333,36 @@ export function PricesScreen({
           you usually only need <strong>one figure per currency per month</strong>, not one per trade date. A date
           below shows as covered once an earlier rate for that currency exists.
         </p>
+        <div className="mt-3 rounded border border-gray-200 bg-gray-50 p-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => void fetchPublicRates()}
+              disabled={fetchState.status === 'loading'}
+              data-testid="fetch-fx"
+              className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:bg-gray-300"
+            >
+              {fetchState.status === 'loading' ? 'Fetching…' : 'Fill blanks from published market rates'}
+            </button>
+            {fetchState.message && (
+              <span
+                data-testid="fetch-fx-message"
+                className={`text-xs ${fetchState.status === 'error' ? 'text-amber-800' : 'text-gray-600'}`}
+              >
+                {fetchState.message}
+              </span>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-gray-600">
+            These are <strong>European Central Bank reference rates</strong> for the actual day, not IRD&apos;s
+            published table. IR461 permits the actual rate for the day — IRD accepts its own mid-month rate as
+            equivalent rather than requiring it — so this is a defensible basis, but it will not match IRD&apos;s
+            figures exactly and whichever basis you choose must be applied consistently. The source and the date
+            each rate belongs to are recorded in the working paper. Only blank dates are filled; anything you
+            typed is left alone.
+          </p>
+        </div>
+
         <p className="mt-2 text-sm">
           <a
             href={IRD_FX_URL}
