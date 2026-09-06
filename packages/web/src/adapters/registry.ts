@@ -1,4 +1,5 @@
 import { ibkrActivityStatementAdapter } from './ibkr/ibkrAdapter';
+import { tigerActivityStatementAdapter } from './tiger/tigerAdapter';
 import { DETECTION_THRESHOLD, type BrokerAdapter } from './types';
 
 /**
@@ -7,7 +8,10 @@ import { DETECTION_THRESHOLD, type BrokerAdapter } from './types';
  * land in M5, each validated against a real anonymised export before being added
  * here with `verified: true`.
  */
-export const ADAPTER_REGISTRY: readonly BrokerAdapter[] = [ibkrActivityStatementAdapter];
+export const ADAPTER_REGISTRY: readonly BrokerAdapter[] = [
+  ibkrActivityStatementAdapter,
+  tigerActivityStatementAdapter,
+];
 
 export interface DetectionResult {
   adapter: BrokerAdapter;

@@ -1,0 +1,31 @@
+Activity Statement,,,,2025-04-01 - 2026-03-31
+Name,,,,ANONYMISED SAMPLE
+Account Information,,,,Account,Address,Account Category,Base Currency
+Account Information,,,DATA,00000000,ANONYMISED,Margin,USD
+Account Overview,,,,,Cash,Stock,Option,Virtual Assets,Funds in Transit,Interest Accruals,Dividend Accruals,Total
+Account Overview,,,DATA,Beginning Of The Period,"1,000.00","10,000.00",0.00,0.00,0.00,0.00,0.00,"11,000.00"
+Base Currency Exchange Rate,,,,Date,2026-03-31
+Base Currency Exchange Rate,,,HEADER_DATA,USD,1.0
+Base Currency Exchange Rate,,,HEADER_DATA,AUD,0.69010
+Base Currency Exchange Rate,,,HEADER_DATA,NZD,0.57466
+Financial Instrument Information,Stock,,DATA,ADBE,,Adobe,1.0,,,
+Trades,,,,Symbol,Market,Exchange,Activity Type,Quantity,Trade Price,Amount,Transaction Fee,Other Tripartite fees,Settlement Fee,SEC Fee,Option Regulatory Fee,Stamp Duty,Transaction Levy,Clearing Fee,Trading Activity Fee,Exchange Fee,Future Regulatory Fee,Commission,Platform Fee,Option Settlement Fee,Subscription Fee,Redemption Fee,Switching Fee,PH Stock Transaction Tax,Tax Service Fee,AFRC Transaction Levy,Trading Tariff,Transaction Fee,Brokerage fee,Handing Fee,Securities Management Fee,Transfer Fees (CSDC),Transfer Fees (HKSCC),Stamp Duty On Stock Borrowing,Consolidated Audit Trail Fee,Processing Fee,CM DA SI Fee,DVP SI Fee,IPO Transaction Fee,IPO Process Fee,Ipo Settle Fee,IPO Channel Fee,Realized P/L,Notes,Trade Time,Settle Date,Currency
+Trades,Stock,,DATA,BHP GROUP LTD (BHP.AU),AU,ASX,Open,100,40.00000,"4,000.00",0.00,0.00,-2.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,-5.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,,"2025-07-22
+11:29:55, Australia/Sydney",2025-07-24,AUD
+Trades,Stock,,DATA,,AU,ASX,Open,60,40.00000,"2,400.00",0.00,0.00,-1.20,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,-3.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,,"2025-07-22
+11:29:55, Australia/Sydney",2025-07-24,AUD
+Trades,Stock,,DATA,,AU,ASX,Open,40,40.00000,"1,600.00",0.00,0.00,-0.80,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,-2.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,,"2025-07-22
+11:29:55, Australia/Sydney",2025-07-24,AUD
+Trades,Stock,,TOTAL,Total BHP,,,,100,,"4,000.00",0.00,0.00,-2.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,-5.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,,,,AUD
+Trades,Stock,,DATA,Adobe (ADBE),US,NASDAQ,Close,-10,500.00000,"-5,000.00",0.00,0.00,0.00,-0.05,0.00,0.00,0.00,-0.02,-0.01,0.00,0.00,-1.99,-1.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,"1,234.00",,"2025-09-10
+09:31:21, US/Eastern",2025-09-12,USD
+Trades,Stock,,DATA,,US,NASDAQ,Close,-10,500.00000,"-5,000.00",0.00,0.00,0.00,-0.05,0.00,0.00,0.00,-0.02,-0.01,0.00,0.00,-1.99,-1.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,"1,234.00",,"2025-09-10
+09:31:21, US/Eastern",2025-09-12,USD
+Trades,Stock,,DATA,Some Shorted Co (SHRT),US,NASDAQ,OpenShort,-25,10.00000,-250.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,-1.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,,"2025-10-01
+09:31:00, US/Eastern",2025-10-03,USD
+Trades,Option,,DATA,Alphabet (GOOG 20250905 PUT 215.0),US,NASDAQ,OpenShort,-3,0.49000,-147.00,0.00,0.00,0.00,0.00,-0.04,0.00,0.00,-0.06,-0.01,0.00,0.00,-1.99,-1.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,-0.01,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,,"2025-09-03
+09:31:19, US/Eastern",2025-09-04,USD
+Trades,Crypto,,DATA,Bitcoin (BTC),HK,HASHKEY,Buy,0.01,"90,000.00000",900.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,-0.90,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,,"2026-01-27
+09:36:09, GMT+8",2026-01-27,USD
+Dividends,,,,Date,Product,Symbol,Dividend Reinvestment Plan,Quantity/Gross Rate,Phase,Cash Dividends,Shares,Fees & Tax,Net Cash Value,Currency
+Dividends,,,DATA,2025-04-16,Stock,VANGUARD AUST SHARES IDX ETF (VAS.AU),,Quantity: 110<br/>Gross Rate: 0.727431/Share,Paid,80.02,0,Overseas withholding tax: 0.10<br/>NZ Resident withholding tax: 26.30,53.62,AUD
