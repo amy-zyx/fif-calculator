@@ -1,5 +1,5 @@
 import type { CanonicalTxn, CostBasisMethod, FxPolicy, ScopeOverride } from '@fif-calculator/engine';
-import type { ParseWarning } from '../adapters/types';
+import type { ParsedFile, ParseWarning } from '../adapters/types';
 
 export type Step = 'landing' | 'setup' | 'upload' | 'review' | 'prices' | 'results';
 
@@ -9,6 +9,14 @@ export interface ImportedAccount {
   verified: boolean;
   txns: CanonicalTxn[];
   warnings: ParseWarning[];
+  /**
+   * The parsed rows this account came from, kept so the user can re-open the Column
+   * Mapping Wizard and map the file by hand even after an adapter matched it — an
+   * adapter can be confidently wrong, and the user is the one who can tell.
+   */
+  file?: ParsedFile;
+  /** True when these transactions came from a hand-built mapping, not an adapter. */
+  manuallyMapped?: boolean;
 }
 
 /** A closing (31 March) price the user has entered by hand. */

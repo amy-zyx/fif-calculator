@@ -17,6 +17,10 @@ export interface ColumnMappingWizardProps {
   file: ParsedFile;
   sourceAccountId: string;
   onComplete: (result: { txns: CanonicalTxn[]; warnings: ParseWarning[]; profile: AdapterProfile }) => void;
+  /** Provided when the wizard was opened by choice, so it can be backed out of. */
+  onCancel?: (() => void) | undefined;
+  /** Shown when the user opened the wizard over a file an adapter already read. */
+  detectedLabel?: string | undefined;
 }
 
 function downloadJson(filename: string, contents: string) {
@@ -34,7 +38,13 @@ function downloadJson(filename: string, contents: string) {
  * detection threshold, the user drags their own file's columns onto canonical
  * fields, with a live preview of the first rows so mistakes are caught immediately.
  */
-export function ColumnMappingWizard({ file, sourceAccountId, onComplete }: ColumnMappingWizardProps) {
+export function ColumnMappingWizard({
+  file,
+  sourceAccountId,
+  onComplete,
+  onCancel,
+  detectedLabel,
+}: ColumnMappingWizardProps) {
   const [mapping, setMapping] = useState<ColumnMapping>({});
   const [typeValueMap, setTypeValueMap] = useState<TypeValueMap>({});
   const [fxRateConvertsTo, setFxRateConvertsTo] = useState<AdapterProfile['fxRateConvertsTo']>(null);
@@ -121,13 +131,28 @@ export function ColumnMappingWizard({ file, sourceAccountId, onComplete }: Colum
 
   return (
     <div className="space-y-6" data-testid="column-mapping-wizard">
-      <div>
-        <h2 className="text-lg font-semibold">Map your file's columns</h2>
-        <p className="text-sm text-gray-600">
-          We didn't recognise <span className="font-mono">{file.fileName}</span> as a known broker export. Drag
-          each column from your file onto the matching field below. You can save this mapping and reuse it next
-          time.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold">Map your file's columns</h2>
+          {detectedLabel ? (
+            <p className="text-sm text-gray-600">
+              <span className="font-mono">{file.fileName}</span> was read as{' '}
+              <strong>{detectedLabel}</strong>. Mapping it by hand here replaces that — useful if the automatic
+              reading looks wrong. Drag each column onto the matching field below.
+            </p>
+          ) : (
+            <p className="text-sm text-gray-600">
+              We didn't recognise <span className="font-mono">{file.fileName}</span> as a known broker export.
+              Drag each column from your file onto the matching field below. You can save this mapping and reuse
+              it next time.
+            </p>
+          )}
+        </div>
+        {onCancel && (
+          <button type="button" onClick={onCancel} className="shrink-0 rounded border px-3 py-1 text-sm">
+            Cancel
+          </button>
+        )}
       </div>
 
       <div>

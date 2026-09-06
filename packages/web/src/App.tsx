@@ -34,6 +34,8 @@ export function App() {
   const [workspace, setWorkspace] = useState<Workspace>(emptyWorkspace);
   const session = activeSession(workspace);
   const [pendingFile, setPendingFile] = useState<ParsedFile | null>(null);
+  /** Index of the already-imported account being re-mapped by hand, if any. */
+  const [remapIndex, setRemapIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Spec §12: the disclaimer must be seen, not merely present. The gate is a deliberate
   // stop rather than a footnote, because every figure this app produces is an estimate.
@@ -129,11 +131,13 @@ export function App() {
               verified: detection.adapter.verified,
               txns,
               warnings,
+              file: parsed,
             },
           ],
         });
       } else {
         setPendingFile(parsed);
+        setRemapIndex(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not read that file.');
@@ -287,21 +291,32 @@ export function App() {
           (pendingFile ? (
             <ColumnMappingWizard
               file={pendingFile}
-              sourceAccountId={`acct_${session.accounts.length + 1}`}
+              sourceAccountId={pendingFile.sourceAccountId}
+              onCancel={remapIndex === null ? undefined : () => {
+                setPendingFile(null);
+                setRemapIndex(null);
+              }}
+              detectedLabel={
+                remapIndex === null ? undefined : session.accounts[remapIndex]?.brokerLabel
+              }
               onComplete={(r) => {
+                const mapped: SessionState['accounts'][number] = {
+                  fileName: pendingFile.fileName,
+                  brokerLabel: 'Custom mapping',
+                  verified: false,
+                  txns: r.txns,
+                  warnings: r.warnings,
+                  file: pendingFile,
+                  manuallyMapped: true,
+                };
                 patch({
-                  accounts: [
-                    ...session.accounts,
-                    {
-                      fileName: pendingFile.fileName,
-                      brokerLabel: 'Custom mapping',
-                      verified: false,
-                      txns: r.txns,
-                      warnings: r.warnings,
-                    },
-                  ],
+                  accounts:
+                    remapIndex === null
+                      ? [...session.accounts, mapped]
+                      : session.accounts.map((a, i) => (i === remapIndex ? mapped : a)),
                 });
                 setPendingFile(null);
+                setRemapIndex(null);
               }}
             />
           ) : (
@@ -325,17 +340,32 @@ export function App() {
               {error && <p className="text-sm text-red-600">{error}</p>}
 
               {session.accounts.map((account, i) => (
-                <div key={i} className="rounded border p-4">
-                  <div className="flex items-center justify-between">
+                <div key={i} className="rounded border p-4" data-testid={`account-card-${i}`}>
+                  <div className="flex items-center justify-between gap-3">
                     <h2 className="font-medium">{account.fileName}</h2>
                     <span className="text-sm text-gray-500">{account.brokerLabel}</span>
                   </div>
                   {!account.verified && (
                     <p className="mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-800">
-                      beta — please check the parsed preview
+                      {account.manuallyMapped
+                        ? 'mapped by hand — please check the parsed transactions'
+                        : 'beta — please check the parsed preview'}
                     </p>
                   )}
                   <p className="mt-2 text-sm">{account.txns.length} transactions parsed.</p>
+                  {account.file && (
+                    <button
+                      type="button"
+                      data-testid={`remap-${i}`}
+                      onClick={() => {
+                        setPendingFile(account.file ?? null);
+                        setRemapIndex(i);
+                      }}
+                      className="mt-2 text-sm text-blue-700 underline"
+                    >
+                      {account.manuallyMapped ? 'Edit the column mapping' : 'Map columns myself instead'}
+                    </button>
+                  )}
                 </div>
               ))}
 
