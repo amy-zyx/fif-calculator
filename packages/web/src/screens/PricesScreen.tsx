@@ -1,9 +1,12 @@
 import { getIncomeYearTaxConfig } from '@fif-calculator/engine';
 import { useMemo } from 'react';
 import {
+  coveringRate,
+  IRD_FX_URL,
   missingClosingPrices,
   missingFxRates,
   requiredClosingPrices,
+  requiredCurrencies,
   requiredFxRates,
 } from '../state/requirements';
 import {
@@ -62,6 +65,25 @@ export function PricesScreen({
 
   function setFxRate(currency: string, date: string, value: string) {
     onChange({ fxRates: { ...session.fxRates, [fxRateKey(currency, date)]: value } });
+  }
+
+  /**
+   * Copies one rate onto every date for that currency that has no rate of its own.
+   *
+   * This is an explicit action with the value shown on the button, never a silent
+   * default — the user is asserting that this published rate applies to those dates,
+   * which is how IRD's monthly tables work, rather than the app inventing a number.
+   * Dates that already have their own figure are left alone.
+   */
+  function fillDown(currency: string, value: string) {
+    const next = { ...session.fxRates };
+    for (const req of neededRates) {
+      if (req.currency !== currency) continue;
+      const key = fxRateKey(req.currency, req.date);
+      const existing = next[key];
+      if (!existing || existing.trim() === '') next[key] = value;
+    }
+    onChange({ fxRates: next });
   }
 
   function addOpeningHolding() {
@@ -256,31 +278,97 @@ export function PricesScreen({
           In IRD&apos;s published convention: <strong>units of foreign currency per 1 NZD</strong>. For example a
           USD rate of <span className="font-mono">0.5800</span> means 1 NZD buys 0.58 USD.
         </p>
-        <table className="mt-2 w-full text-sm">
-          <thead>
-            <tr className="border-b text-left text-gray-600">
-              <th className="py-1 pr-3">Currency</th>
-              <th className="py-1 pr-3">Date</th>
-              <th className="py-1 pr-3">Rate (foreign per NZD)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {neededRates.map((req) => (
-              <tr key={fxRateKey(req.currency, req.date)} className="border-b border-gray-100">
-                <td className="py-1 pr-3 font-mono">{req.currency}</td>
-                <td className="py-1 pr-3 font-mono">{req.date}</td>
-                <td className="py-1 pr-3">
-                  <input
-                    aria-label={`Rate for ${req.currency} on ${req.date}`}
-                    value={session.fxRates[fxRateKey(req.currency, req.date)] ?? ''}
-                    onChange={(e) => setFxRate(req.currency, req.date, e.target.value)}
-                    className="w-28 rounded border border-gray-300 px-2 py-1 font-mono"
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <p className="mt-1 text-sm text-gray-600">
+          IRD publishes one rate per month, and a rate applies to every date up to the next published one — so
+          you usually only need <strong>one figure per currency per month</strong>, not one per trade date. A date
+          below shows as covered once an earlier rate for that currency exists.
+        </p>
+        <p className="mt-2 text-sm">
+          <a
+            href={IRD_FX_URL}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-blue-700 underline"
+            data-testid="ird-fx-link"
+          >
+            Open IRD&apos;s exchange rate tables
+          </a>{' '}
+          <span className="text-gray-500">
+            — nothing is fetched automatically; copy the figures from the source you can cite.
+          </span>
+        </p>
+
+        {requiredCurrencies(session).map((currency) => {
+          const forCurrency = neededRates.filter((r) => r.currency === currency);
+          const firstEntered = forCurrency
+            .map((r) => session.fxRates[fxRateKey(r.currency, r.date)])
+            .find((v) => v && v.trim() !== '');
+          return (
+            <div key={currency} className="mt-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <h3 className="font-medium">{currency}</h3>
+                <a
+                  href={`${IRD_FX_URL}`}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="text-xs text-blue-700 underline"
+                >
+                  look up {currency}
+                </a>
+                {firstEntered && (
+                  <button
+                    type="button"
+                    data-testid={`fill-down-${currency}`}
+                    onClick={() => fillDown(currency, firstEntered)}
+                    className="rounded border px-2 py-1 text-xs"
+                  >
+                    Apply {firstEntered} to every blank {currency} date
+                  </button>
+                )}
+              </div>
+              <table className="mt-1 w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-gray-600">
+                    <th className="py-1 pr-3">Date</th>
+                    <th className="py-1 pr-3">Rate (foreign per NZD)</th>
+                    <th className="py-1">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {forCurrency.map((req) => {
+                    const own = session.fxRates[fxRateKey(req.currency, req.date)] ?? '';
+                    const covering = coveringRate(session, req.currency, req.date);
+                    return (
+                      <tr key={fxRateKey(req.currency, req.date)} className="border-b border-gray-100">
+                        <td className="py-1 pr-3 font-mono">{req.date}</td>
+                        <td className="py-1 pr-3">
+                          <input
+                            aria-label={`Rate for ${req.currency} on ${req.date}`}
+                            value={own}
+                            placeholder={covering && !covering.exact ? covering.value : ''}
+                            onChange={(e) => setFxRate(req.currency, req.date, e.target.value)}
+                            className="w-28 rounded border border-gray-300 px-2 py-1 font-mono"
+                          />
+                        </td>
+                        <td className="py-1 text-xs">
+                          {own.trim() !== '' ? (
+                            <span className="text-green-800">entered</span>
+                          ) : covering ? (
+                            <span className="text-gray-600">
+                              using {covering.value} from {covering.date}
+                            </span>
+                          ) : (
+                            <span className="text-amber-800">needed</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
       </section>
 
       {!ready && (

@@ -88,12 +88,57 @@ export function requiredFxRates(session: SessionState): FxRequirement[] {
   );
 }
 
-export function missingFxRates(session: SessionState): FxRequirement[] {
-  return requiredFxRates(session).filter((r) => {
-    const value = session.fxRates[fxRateKey(r.currency, r.date)];
-    return value === undefined || value.trim() === '';
-  });
+export interface CoveringRate {
+  /** The date the rate was actually entered against. */
+  date: string;
+  value: string;
+  /** True when it was entered for this exact date rather than carried forward. */
+  exact: boolean;
 }
+
+/**
+ * The rate that will actually be used for (currency, date).
+ *
+ * IRD publishes monthly and mid-month tables, and its rates are applied by carrying the
+ * most recent published rate forward — a trade on the 22nd uses that month's rate. The
+ * engine's `TableIrdRateProvider` already looks rates up that way, so the Prices screen
+ * must agree: a date is covered if a rate exists for that currency on or before it.
+ *
+ * Asking for a separate figure on every trade date would be over-asking, and worse, it
+ * would invite the user to type slightly different rates for dates that IR461 says share
+ * one published rate.
+ */
+export function coveringRate(session: SessionState, currency: string, date: string): CoveringRate | null {
+  let best: CoveringRate | null = null;
+  for (const [key, value] of Object.entries(session.fxRates)) {
+    if (!value || value.trim() === '') continue;
+    const [entryCurrency, entryDate] = key.split('|');
+    if (entryCurrency !== currency || !entryDate) continue;
+    if (entryDate > date) continue;
+    if (!best || entryDate > best.date) {
+      best = { date: entryDate, value: value.trim(), exact: entryDate === date };
+    }
+  }
+  return best;
+}
+
+/** Dates with no rate on or before them — the ones that genuinely still block. */
+export function missingFxRates(session: SessionState): FxRequirement[] {
+  return requiredFxRates(session).filter((r) => coveringRate(session, r.currency, r.date) === null);
+}
+
+/** The distinct currencies the calculation needs, for the per-currency entry UI. */
+export function requiredCurrencies(session: SessionState): string[] {
+  return [...new Set(requiredFxRates(session).map((r) => r.currency))].sort();
+}
+
+/**
+ * IRD's own exchange rate tables. Linked rather than scraped: there is no public API,
+ * and a rate transcribed by the user from the source they can cite is worth more than
+ * one this app guessed.
+ */
+export const IRD_FX_URL =
+  'https://www.ird.govt.nz/international-tax/business/foreign-currency/exchange-rates';
 
 export function missingClosingPrices(session: SessionState): PriceRequirement[] {
   // Matched on ticker, consistent with how requirements are keyed and how a
