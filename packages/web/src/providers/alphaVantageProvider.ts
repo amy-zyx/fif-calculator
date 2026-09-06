@@ -1,6 +1,28 @@
 import type { PriceLookupResult, PriceProvider, PriceRequest } from './types';
 
 const ENDPOINT = 'https://www.alphavantage.co/query';
+const KEY_STORAGE = 'fif.alphaVantageKey';
+
+/**
+ * The user's own API key, kept in their browser and never bundled. Cleared by the
+ * "Clear all my data" control along with everything else.
+ */
+export function storedApiKey(): string {
+  try {
+    return localStorage.getItem(KEY_STORAGE) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export function storeApiKey(key: string): void {
+  try {
+    if (key.trim()) localStorage.setItem(KEY_STORAGE, key.trim());
+    else localStorage.removeItem(KEY_STORAGE);
+  } catch {
+    // Blocked site data: the key simply is not remembered between reloads.
+  }
+}
 
 /**
  * Alpha Vantage, chosen because it permits CORS from the browser and takes a

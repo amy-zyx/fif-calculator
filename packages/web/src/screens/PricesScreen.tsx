@@ -1,5 +1,6 @@
 import { getIncomeYearTaxConfig } from '@fif-calculator/engine';
 import { useMemo, useState } from 'react';
+import { AlphaVantageProvider, storeApiKey, storedApiKey } from '../providers/alphaVantageProvider';
 import { fetchFxRates } from '../providers/fxRateProvider';
 import {
   coveringRate,
@@ -42,6 +43,11 @@ export function PricesScreen({
     status: 'idle' | 'loading' | 'done' | 'error';
     message: string;
   }>({ status: 'idle', message: '' });
+  const [priceFetchState, setPriceFetchState] = useState<{
+    status: 'idle' | 'loading' | 'done' | 'error';
+    message: string;
+  }>({ status: 'idle', message: '' });
+  const [apiKey, setApiKey] = useState(storedApiKey);
   const neededPrices = useMemo(() => requiredClosingPrices(session), [session]);
   const neededRates = useMemo(() => requiredFxRates(session), [session]);
   const stillMissingPrices = missingClosingPrices(session);
@@ -115,6 +121,78 @@ export function PricesScreen({
         `Filled ${result.quotes.length} rate(s) from ECB reference rates.` +
         (failed > 0 ? ` ${failed} could not be fetched — enter those by hand.` : '') +
         (notes.length > 0 ? ` ${notes.join(' ')}` : ''),
+    });
+  }
+
+  /**
+   * Fetches the closing price for each outstanding instrument.
+   *
+   * Deliberately limited to USD instruments. Alpha Vantage's daily series does not state
+   * a currency, and its plain ticker resolves to the US listing — so fetching "BHP" for
+   * an ASX holding would return the US price and store it against an AUD holding. That
+   * is a silent wrong number of exactly the kind this project keeps finding, so non-USD
+   * instruments are skipped and reported rather than guessed at.
+   */
+  async function fetchClosingPrices() {
+    const key = apiKey.trim();
+    if (!key) {
+      setPriceFetchState({ status: 'error', message: 'Enter your Alpha Vantage API key first.' });
+      return;
+    }
+    setPriceFetchState({ status: 'loading', message: 'Fetching closing prices…' });
+
+    const outstanding = stillMissingPrices;
+    const fetchable = outstanding.filter((p) => p.currency.toUpperCase() === 'USD');
+    const skipped = outstanding.filter((p) => p.currency.toUpperCase() !== 'USD');
+
+    if (fetchable.length === 0) {
+      setPriceFetchState({
+        status: 'error',
+        message:
+          skipped.length > 0
+            ? `Nothing fetchable: ${skipped.map((s) => `${s.ticker} (${s.currency})`).join(', ')} are not USD, so enter those by hand.`
+            : 'No closing prices are outstanding.',
+      });
+      return;
+    }
+
+    const provider = new AlphaVantageProvider(key);
+    const result = await provider.fetchPrices(
+      fetchable.map((p) => ({ ticker: p.ticker, date: config.endDate })),
+    );
+
+    const notes: string[] = [];
+    let next = session.closingPrices;
+    for (const quote of result.quotes) {
+      const requirement = fetchable.find((p) => p.ticker.toUpperCase() === quote.ticker.toUpperCase());
+      if (!requirement) continue;
+      const existing = next.find((p) => p.ticker.toUpperCase() === quote.ticker.toUpperCase());
+      if (existing && existing.pricePerUnit.trim() !== '') continue;
+      // The requirement's currency wins: the provider does not report one, and assuming
+      // its default would be how a wrong-currency price gets stored.
+      const entry: ManualClosingPrice = {
+        ticker: requirement.ticker,
+        exchange: requirement.exchange,
+        pricePerUnit: quote.pricePerUnit,
+        currency: requirement.currency,
+      };
+      next = existing ? next.map((p) => (p === existing ? entry : p)) : [...next, entry];
+      if (quote.actualDate && quote.actualDate !== quote.date) {
+        notes.push(`${quote.ticker}: used the close from ${quote.actualDate}, the last trading day on or before ${quote.date}.`);
+      }
+    }
+    onChange({ closingPrices: next });
+
+    const problems = [
+      ...result.failures.map((f) => `${f.ticker}: ${f.reason}`),
+      ...skipped.map((s) => `${s.ticker} skipped — ${s.currency}, not USD`),
+    ];
+    setPriceFetchState({
+      status: problems.length > 0 ? 'error' : 'done',
+      message:
+        `Filled ${result.quotes.length} closing price(s) at ${config.endDate}.` +
+        (notes.length > 0 ? ` ${notes.join(' ')}` : '') +
+        (problems.length > 0 ? ` Enter by hand: ${problems.join('; ')}.` : ''),
     });
   }
 
@@ -274,6 +352,56 @@ export function PricesScreen({
           The closing price on the last trading day on or before {config.endDate}, in the instrument&apos;s own
           currency.
         </p>
+        <div className="mt-3 rounded border border-gray-200 bg-gray-50 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-xs text-gray-700">
+              Alpha Vantage API key
+              <input
+                type="password"
+                aria-label="Alpha Vantage API key"
+                value={apiKey}
+                onChange={(e) => {
+                  setApiKey(e.target.value);
+                  storeApiKey(e.target.value);
+                }}
+                placeholder="your own free key"
+                className="ml-2 w-48 rounded border border-gray-300 px-2 py-1 font-mono"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => void fetchClosingPrices()}
+              disabled={priceFetchState.status === 'loading'}
+              data-testid="fetch-prices"
+              className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:bg-gray-300"
+            >
+              {priceFetchState.status === 'loading' ? 'Fetching…' : 'Fetch closing prices'}
+            </button>
+            <a
+              href="https://www.alphavantage.co/support/#api-key"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-xs text-blue-700 underline"
+            >
+              get a free key
+            </a>
+          </div>
+          {priceFetchState.message && (
+            <p
+              data-testid="fetch-prices-message"
+              className={`mt-2 text-xs ${priceFetchState.status === 'error' ? 'text-amber-800' : 'text-gray-600'}`}
+            >
+              {priceFetchState.message}
+            </p>
+          )}
+          <p className="mt-2 text-xs text-gray-600">
+            Optional. Your key stays in this browser and is never sent anywhere except to Alpha Vantage; the
+            request carries only a ticker. <strong>USD instruments only</strong> — a plain ticker resolves to the
+            US listing, so fetching a price for an ASX or NZX holding would return the wrong market&apos;s number.
+            Only blank prices are filled, and the free tier allows about 25 requests a day.
+          </p>
+        </div>
+
         <table className="mt-2 w-full text-sm">
           <thead>
             <tr className="border-b text-left text-gray-600">
