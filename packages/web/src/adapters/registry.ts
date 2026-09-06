@@ -1,4 +1,5 @@
 import { ibkrActivityStatementAdapter } from './ibkr/ibkrAdapter';
+import { sharesiesTransactionReportAdapter } from './sharesies/sharesiesAdapter';
 import { tigerActivityStatementAdapter } from './tiger/tigerAdapter';
 import { DETECTION_THRESHOLD, type BrokerAdapter } from './types';
 
@@ -11,6 +12,7 @@ import { DETECTION_THRESHOLD, type BrokerAdapter } from './types';
 export const ADAPTER_REGISTRY: readonly BrokerAdapter[] = [
   ibkrActivityStatementAdapter,
   tigerActivityStatementAdapter,
+  sharesiesTransactionReportAdapter,
 ];
 
 export interface DetectionResult {
