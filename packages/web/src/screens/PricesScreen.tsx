@@ -27,6 +27,20 @@ import {
  * layered on top: it is only triggered by an explicit click, it fills blanks only, and
  * it never overwrites a figure the user typed.
  */
+/**
+ * Alpha Vantage answers with a marketing paragraph rather than an error code. Repeating
+ * it once per ticker buries the only part that matters, so the known cases are reduced
+ * to a short phrase and anything unrecognised is truncated rather than dumped.
+ */
+function summariseProviderReason(reason: string): string {
+  if (/rate limit|spreading out|per day/i.test(reason)) {
+    return 'the free API limit was reached (25 requests a day) — try again tomorrow or enter these by hand';
+  }
+  if (/premium/i.test(reason)) return 'this ticker needs a premium Alpha Vantage plan';
+  if (/no price returned/i.test(reason)) return 'no price was published for that date';
+  return reason.length > 120 ? `${reason.slice(0, 117)}…` : reason;
+}
+
 export function PricesScreen({
   session,
   onChange,
@@ -183,16 +197,28 @@ export function PricesScreen({
     }
     onChange({ closingPrices: next });
 
-    const problems = [
-      ...result.failures.map((f) => `${f.ticker}: ${f.reason}`),
-      ...skipped.map((s) => `${s.ticker} skipped — ${s.currency}, not USD`),
-    ];
+    // Group by reason. Alpha Vantage returns a near-identical paragraph per ticker, so
+    // listing them one by one produced a wall of repeated text that buried the useful
+    // part — which tickers still need entering, and why.
+    const byReason = new Map<string, string[]>();
+    for (const failure of result.failures) {
+      const reason = summariseProviderReason(failure.reason);
+      byReason.set(reason, [...(byReason.get(reason) ?? []), failure.ticker]);
+    }
+    if (skipped.length > 0) {
+      byReason.set(
+        'not USD, so the US listing’s price would be the wrong market',
+        skipped.map((s) => `${s.ticker} (${s.currency})`),
+      );
+    }
+    const problems = [...byReason.entries()].map(([reason, tickers]) => `${tickers.join(', ')} — ${reason}`);
+
     setPriceFetchState({
       status: problems.length > 0 ? 'error' : 'done',
       message:
         `Filled ${result.quotes.length} closing price(s) at ${config.endDate}.` +
         (notes.length > 0 ? ` ${notes.join(' ')}` : '') +
-        (problems.length > 0 ? ` Enter by hand: ${problems.join('; ')}.` : ''),
+        (problems.length > 0 ? ` Enter these by hand: ${problems.join('; ')}.` : ''),
     });
   }
 

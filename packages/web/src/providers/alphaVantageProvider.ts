@@ -2,6 +2,8 @@ import type { PriceLookupResult, PriceProvider, PriceRequest } from './types';
 
 const ENDPOINT = 'https://www.alphavantage.co/query';
 const KEY_STORAGE = 'fif.alphaVantageKey';
+/** Alpha Vantage's free tier asks for no more than one request per second. */
+const REQUEST_SPACING_MS = 1100;
 
 /**
  * The user's own API key, kept in their browser and never bundled. Cleared by the
@@ -65,15 +67,22 @@ export class AlphaVantageProvider implements PriceProvider {
       };
     }
 
-    // Deliberately sequential. The free tier is heavily rate limited, and firing a
-    // portfolio's worth of parallel requests reliably trips it — which would surface to
-    // the user as a wall of failures rather than a slow but working lookup.
+    // Deliberately sequential, and paced. Alpha Vantage's free tier asks for at most one
+    // request per second and firing a portfolio's worth at once trips it — which reaches
+    // the user as a wall of "please spread out your requests" rather than prices.
+    let first = true;
     for (const request of requests) {
+      if (!first) await new Promise((resolve) => setTimeout(resolve, REQUEST_SPACING_MS));
+      first = false;
       try {
+        // TIME_SERIES_MONTHLY, not DAILY. `outputsize=full` became a premium feature, and
+        // the free DAILY response is capped at ~100 trading days — which cannot reach the
+        // previous 31 March from any point later than about July. MONTHLY is free, carries
+        // full history, and its month-end row IS the close of the last trading day in that
+        // month, which is exactly the figure a 31 March year end needs.
         const params = new URLSearchParams({
-          function: 'TIME_SERIES_DAILY',
+          function: 'TIME_SERIES_MONTHLY',
           symbol: request.ticker,
-          outputsize: 'full',
           apikey: this.apiKey,
         });
         const response = await fetch(`${ENDPOINT}?${params.toString()}`);
@@ -128,7 +137,10 @@ function rateLimitMessage(body: unknown): string | null {
  */
 export function extractClose(body: unknown, date: string): { close: string; actualDate: string } | null {
   if (typeof body !== 'object' || body === null) return null;
-  const series = (body as Record<string, unknown>)['Time Series (Daily)'];
+  const record = body as Record<string, unknown>;
+  // Monthly is what the provider requests now; daily is still read so an older cached
+  // response, or a future switch back, parses without a second code path.
+  const series = record['Monthly Time Series'] ?? record['Time Series (Daily)'];
   if (typeof series !== 'object' || series === null) return null;
 
   const entries = series as Record<string, Record<string, string>>;

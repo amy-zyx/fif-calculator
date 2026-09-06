@@ -1,4 +1,4 @@
-import { getIncomeYearTaxConfig } from '@fif-calculator/engine';
+import { D, ZERO, getIncomeYearTaxConfig, type Decimal } from '@fif-calculator/engine';
 import { allTxns, fxRateKey, type SessionState } from './session';
 
 export interface PriceRequirement {
@@ -21,7 +21,55 @@ export interface FxRequirement {
  * price that turns out to be unnecessary costs the user a moment; failing to ask for
  * one that IS necessary blocks the calculation, which is worse.
  */
+const ACQUISITION_TYPES = new Set(['BUY', 'DRIP', 'TRANSFER_IN', 'OPTION_ASSIGNMENT']);
+const DISPOSAL_TYPES = new Set(['SELL', 'TRANSFER_OUT']);
+
+/**
+ * Net quantity held at year end, per ticker, from opening holdings plus the year's
+ * acquisitions less its disposals.
+ *
+ * Mirrors the ledger's own arithmetic, including treating a confirmed inter-broker
+ * transfer as neutral. It needs no prices or FX rates, which is what lets the Prices
+ * screen know what to ask for before anything has been entered.
+ */
+export function closingQuantityByTicker(session: SessionState): Map<string, Decimal> {
+  const byTicker = new Map<string, Decimal>();
+  const confirmed = new Set(session.confirmedTransferTxnIds);
+
+  for (const holding of session.openingHoldings) {
+    const ticker = holding.ticker.trim().toUpperCase();
+    if (!ticker) continue;
+    const quantity = holding.quantity.trim() === '' ? ZERO : D(holding.quantity);
+    byTicker.set(ticker, (byTicker.get(ticker) ?? ZERO).plus(quantity));
+  }
+
+  for (const txn of allTxns(session)) {
+    if (!txn.instrument || txn.instrument.assetClass === 'OPTION') continue;
+    if (confirmed.has(txn.id)) continue;
+    const quantity = txn.quantity;
+    if (!quantity) continue;
+    const ticker = txn.instrument.ticker.toUpperCase();
+    const current = byTicker.get(ticker) ?? ZERO;
+    if (ACQUISITION_TYPES.has(txn.type)) byTicker.set(ticker, current.plus(quantity));
+    else if (DISPOSAL_TYPES.has(txn.type)) byTicker.set(ticker, current.minus(quantity));
+  }
+
+  return byTicker;
+}
+
+/**
+ * The closing prices the calculation will actually use (spec §7 step 5).
+ *
+ * Only instruments still HELD at year end are asked for. A holding that was sold out
+ * during the year has a closing quantity of zero, and the ledger short-circuits it to a
+ * closing market value of zero without ever consulting a price — so asking for one was
+ * pure waste. On a real Tiger account that was seventeen tickers when only a handful
+ * were still held: a wall of manual entry, and enough lookups to exhaust a free price
+ * API's daily quota on prices that would then be discarded.
+ */
 export function requiredClosingPrices(session: SessionState): PriceRequirement[] {
+  const closing = closingQuantityByTicker(session);
+  const stillHeld = (ticker: string) => (closing.get(ticker.toUpperCase()) ?? ZERO).greaterThan(ZERO);
   const byKey = new Map<string, PriceRequirement>();
 
   // Transactions first, so their identity is the one shown. A hand-entered holding for
@@ -31,6 +79,7 @@ export function requiredClosingPrices(session: SessionState): PriceRequirement[]
     if (!txn.instrument) continue;
     // Options are not attributing FIF interests, so they are never valued at 31 March.
     if (txn.instrument.assetClass === 'OPTION') continue;
+    if (!stillHeld(txn.instrument.ticker)) continue;
     byKey.set(txn.instrument.ticker.toUpperCase(), {
       ticker: txn.instrument.ticker,
       exchange: txn.instrument.exchange,
@@ -41,6 +90,7 @@ export function requiredClosingPrices(session: SessionState): PriceRequirement[]
   for (const holding of session.openingHoldings) {
     if (holding.ticker.trim() === '') continue;
     const key = holding.ticker.toUpperCase();
+    if (!stillHeld(key)) continue;
     if (!byKey.has(key)) {
       byKey.set(key, { ticker: holding.ticker, exchange: holding.exchange, currency: holding.currency });
     }

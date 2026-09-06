@@ -57,7 +57,7 @@ describe('fetching closing prices', () => {
         ok: true,
         status: 200,
         json: async () => ({
-          'Time Series (Daily)': { '2026-03-31': { '4. close': '512.34' } },
+          'Monthly Time Series': { '2026-03-31': { '4. close': '512.34' } },
         }),
       })),
     );
@@ -120,8 +120,8 @@ describe('fetching closing prices', () => {
         ok: true,
         status: 200,
         json: async () => ({
-          // No 2026-03-31 row — the series stops at the previous trading day.
-          'Time Series (Daily)': { '2026-03-27': { '4. close': '500.00' } },
+          // No 2026-03-31 row — the series stops at the previous month end.
+          'Monthly Time Series': { '2026-02-28': { '4. close': '500.00' } },
         }),
       })),
     );
@@ -134,7 +134,7 @@ describe('fetching closing prices', () => {
 
     await waitFor(() =>
       expect(screen.getByTestId('fetch-prices-message')).toHaveTextContent(
-        /used the close from 2026-03-27, the last trading day on or before 2026-03-31/,
+        /used the close from 2026-02-28, the last trading day on or before 2026-03-31/,
       ),
     );
   });
@@ -156,7 +156,31 @@ describe('fetching closing prices', () => {
     fireEvent.click(screen.getByTestId('fetch-prices'));
 
     await waitFor(() =>
-      expect(screen.getByTestId('fetch-prices-message')).toHaveTextContent(/rate limit/i),
+      expect(screen.getByTestId('fetch-prices-message')).toHaveTextContent(/free API limit was reached/i),
     );
+  });
+
+  it('collapses one repeated provider message across many tickers into a single line', async () => {
+    // The real report was a wall: a near-identical paragraph repeated for 17 tickers.
+    const note = 'Thank you for using Alpha Vantage! Please consider spreading out your free API requests more sparingly (1 request per second). You may subscribe to any of the premium plans...';
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ Note: note }) })));
+
+    render(
+      <PricesScreen
+        session={sessionWith([txn('AMD', 'NASDAQ', 'USD'), txn('MSFT', 'NASDAQ', 'USD'), txn('TSLA', 'NASDAQ', 'USD')])}
+        onChange={vi.fn()}
+        onNext={() => {}}
+        onBack={() => {}}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Alpha Vantage API key'), { target: { value: 'k' } });
+    fireEvent.click(screen.getByTestId('fetch-prices'));
+
+    await waitFor(() => {
+      const text = screen.getByTestId('fetch-prices-message').textContent ?? '';
+      expect(text).toMatch(/AMD, MSFT, TSLA — the free API limit was reached/);
+      // The provider's paragraph appears once at most, not once per ticker.
+      expect(text.match(/free API limit was reached/g)?.length).toBe(1);
+    }, { timeout: 8000 });
   });
 });
