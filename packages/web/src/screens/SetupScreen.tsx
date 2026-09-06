@@ -116,6 +116,40 @@ export function SetupScreen({
         ))}
       </fieldset>
 
+      <fieldset>
+        <legend className="text-sm font-medium">Exclude trades by currency</legend>
+        <p className="text-xs text-gray-500">
+          Trades in these currencies are dropped when a file is imported — they never reach the calculation,
+          the review table or any export. What each import removes is reported on the file&apos;s card.
+        </p>
+        {['NZD', 'AUD', 'USD', 'GBP', 'HKD'].map((currency) => (
+          <label key={currency} className="mt-1 mr-4 inline-flex items-center gap-1 text-sm">
+            <input
+              type="checkbox"
+              aria-label={`Exclude ${currency} trades`}
+              checked={session.excludedCurrencies.includes(currency)}
+              onChange={(e) =>
+                onChange({
+                  excludedCurrencies: e.target.checked
+                    ? [...session.excludedCurrencies, currency]
+                    : session.excludedCurrencies.filter((c) => c !== currency),
+                })
+              }
+            />
+            {currency}
+          </label>
+        ))}
+        {session.excludedCurrencies.includes('AUD') && (
+          <p className="mt-2 rounded bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <strong>AUD is a proxy, not the statutory test.</strong> The Australian listed share exemption
+            applies to shares in a company that is Australian-resident, on an approved index, not stapled, and
+            required to maintain an imputation credit account. An ASX-listed <em>ETF or unit trust</em> is
+            typically none of those and may still be an attributing FIF interest, so excluding it can understate
+            your income. Check any AUD holding that is a fund rather than a company.
+          </p>
+        )}
+      </fieldset>
+
       <button type="button" onClick={onNext} className="rounded bg-blue-600 px-4 py-2 text-white">
         Continue to upload
       </button>

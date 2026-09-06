@@ -16,6 +16,7 @@ import { runCalculation } from './state/runCalculation';
 import {
   activeSession,
   addTaxpayer,
+  applyCurrencyFilter,
   copyFxRatesFrom,
   emptyWorkspace,
   patchActiveSession,
@@ -122,6 +123,9 @@ export function App() {
       const detection = detectBestAdapter(parsed.headers, parsed.rows.slice(0, 20));
       if (isConfidentMatch(detection)) {
         const { txns, warnings } = detection.adapter.parse(parsed);
+        // Filtered at the import boundary: excluded-currency trades never reach the
+        // ledger, the review table, the price requests or the working paper.
+        const { kept, summary } = applyCurrencyFilter(txns, session.excludedCurrencies);
         patch({
           accounts: [
             ...session.accounts,
@@ -129,9 +133,10 @@ export function App() {
               fileName: parsed.fileName,
               brokerLabel: detection.adapter.displayName,
               verified: detection.adapter.verified,
-              txns,
+              txns: kept,
               warnings,
               file: parsed,
+              ...(summary ? { currencyFiltered: summary } : {}),
             },
           ],
         });
@@ -300,14 +305,16 @@ export function App() {
                 remapIndex === null ? undefined : session.accounts[remapIndex]?.brokerLabel
               }
               onComplete={(r) => {
+                const filtered = applyCurrencyFilter(r.txns, session.excludedCurrencies);
                 const mapped: SessionState['accounts'][number] = {
                   fileName: pendingFile.fileName,
                   brokerLabel: 'Custom mapping',
                   verified: false,
-                  txns: r.txns,
+                  txns: filtered.kept,
                   warnings: r.warnings,
                   file: pendingFile,
                   manuallyMapped: true,
+                  ...(filtered.summary ? { currencyFiltered: filtered.summary } : {}),
                 };
                 patch({
                   accounts:
@@ -353,6 +360,20 @@ export function App() {
                     </p>
                   )}
                   <p className="mt-2 text-sm">{account.txns.length} transactions parsed.</p>
+                  {account.currencyFiltered && (
+                    <div
+                      className="mt-2 rounded bg-gray-50 px-2 py-1 text-xs text-gray-700"
+                      data-testid={`currency-filtered-${i}`}
+                    >
+                      {Object.entries(account.currencyFiltered.droppedByCurrency)
+                        .map(([ccy, n]) => `${n} ${ccy}`)
+                        .join(' and ')}{' '}
+                      transaction(s) were excluded on import and are not in any figure.
+                      {account.currencyFiltered.droppedTickers.length > 0 && (
+                        <> Removed entirely: {account.currencyFiltered.droppedTickers.join(', ')}.</>
+                      )}
+                    </div>
+                  )}
                   {account.file && (
                     <button
                       type="button"

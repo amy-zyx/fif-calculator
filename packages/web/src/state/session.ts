@@ -17,6 +17,70 @@ export interface ImportedAccount {
   file?: ParsedFile;
   /** True when these transactions came from a hand-built mapping, not an adapter. */
   manuallyMapped?: boolean;
+  /** What the currency filter dropped at import, so the removal is never silent. */
+  currencyFiltered?: CurrencyFilterSummary;
+}
+
+export interface CurrencyFilterSummary {
+  /** Currencies that were filtered out. */
+  currencies: string[];
+  /** How many transactions were dropped, per currency. */
+  droppedByCurrency: Record<string, number>;
+  /** Which instruments disappeared entirely, for the review panel. */
+  droppedTickers: string[];
+}
+
+/**
+ * Currencies whose trades are dropped at IMPORT — they never enter the ledger, the
+ * review table, the price requests or the working paper.
+ *
+ * Currency is a proxy for the statutory tests, and it is only sound in one direction.
+ * NZD in practice means an NZX-listed PIE or NZ company, which genuinely is not a FIF
+ * interest. AUD does NOT mean exempt: the Australian listed share exemption applies to
+ * SHARES IN A COMPANY that is Australian-resident, on an approved index, not stapled,
+ * and required to maintain an imputation credit account — an ASX-listed ETF or unit
+ * trust is typically none of those and may still be an attributing FIF interest, so
+ * dropping it understates income. That is why this is a setting rather than a
+ * hardcoded rule, and why what it removes is always reported.
+ */
+export const DEFAULT_EXCLUDED_CURRENCIES = ['NZD', 'AUD'];
+
+/** Splits transactions into those kept and a summary of what the filter removed. */
+export function applyCurrencyFilter(
+  txns: readonly CanonicalTxn[],
+  excludedCurrencies: readonly string[],
+): { kept: CanonicalTxn[]; summary: CurrencyFilterSummary | undefined } {
+  const excluded = new Set(excludedCurrencies.map((c) => c.toUpperCase()));
+  if (excluded.size === 0) return { kept: [...txns], summary: undefined };
+
+  const kept: CanonicalTxn[] = [];
+  const droppedByCurrency: Record<string, number> = {};
+  const droppedTickers = new Set<string>();
+  const keptTickers = new Set<string>();
+
+  for (const txn of txns) {
+    const currency = txn.currency.toUpperCase();
+    if (excluded.has(currency)) {
+      droppedByCurrency[currency] = (droppedByCurrency[currency] ?? 0) + 1;
+      if (txn.instrument) droppedTickers.add(txn.instrument.ticker);
+    } else {
+      kept.push(txn);
+      if (txn.instrument) keptTickers.add(txn.instrument.ticker);
+    }
+  }
+
+  if (Object.keys(droppedByCurrency).length === 0) return { kept, summary: undefined };
+
+  return {
+    kept,
+    summary: {
+      currencies: Object.keys(droppedByCurrency).sort(),
+      droppedByCurrency,
+      // Only instruments that vanished completely — one leg of a dual-currency holding
+      // disappearing would be far more misleading to report as "dropped".
+      droppedTickers: [...droppedTickers].filter((t) => !keptTickers.has(t)).sort(),
+    },
+  };
 }
 
 /** A closing (31 March) price the user has entered by hand. */
@@ -71,6 +135,8 @@ export interface SessionState {
    * unavailable for the interest.
    */
   scopeOverrides: Record<string, ScopeOverride>;
+  /** Trades in these currencies are dropped at import — see DEFAULT_EXCLUDED_CURRENCIES. */
+  excludedCurrencies: string[];
 }
 
 export function emptySession(): SessionState {
@@ -86,6 +152,7 @@ export function emptySession(): SessionState {
     confirmedTransferTxnIds: [],
     accountBaseCurrencies: {},
     scopeOverrides: {},
+    excludedCurrencies: [...DEFAULT_EXCLUDED_CURRENCIES],
   };
 }
 
